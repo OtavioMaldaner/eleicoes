@@ -14,6 +14,7 @@ import { MapaCoropletico } from './MapaCoropletico';
 const SEM_SECAO = '#232326';
 const SEM_VOTOS = '#3f3f46';
 const OUTROS = '#71717a';
+const SEM_RESPOSTA = '#78350f';
 
 const UF_POR_IBGE = new Map(UFS.map((u) => [u.ibge, u.sigla]));
 const chaveUf = (f: Feature) => UF_POR_IBGE.get(String(f.properties?.codarea)) ?? '';
@@ -73,11 +74,24 @@ function Detalhe({ local, vazio, corDe }: { local: Local | undefined; vazio: str
       )}
       {local.empate && <p className="mt-2 text-xs text-zinc-400">Empate entre os dois primeiros.</p>}
       {local.cidades && <p className="mt-2 text-xs text-zinc-500">Cidades somadas: {local.cidades.join(', ')}</p>}
+      {local.cidadesFaltando && <p className="mt-1 text-xs text-amber-300">Soma incompleta: sem resposta de {local.cidadesFaltando.join(', ')}.</p>}
     </div>
   );
 }
 
-function Tabela({ locais, rotulo, selecionado, onSelecionar, corDe }: { locais: Local[]; rotulo: string; selecionado: string | null; onSelecionar: (c: string) => void; corDe: (id: string) => string }) {
+function Tabela({
+  locais,
+  rotulo,
+  selecionado,
+  onSelecionar,
+  corDe,
+}: {
+  locais: Local[];
+  rotulo: string;
+  selecionado: string | null;
+  onSelecionar: (c: string) => void;
+  corDe: (id: string) => string;
+}) {
   const ordenados = [...locais].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
   return (
     <details className="text-xs text-zinc-300">
@@ -100,9 +114,14 @@ function Tabela({ locais, rotulo, selecionado, onSelecionar, corDe }: { locais: 
               return (
                 <tr key={l.chave} className={`border-t border-zinc-800 ${l.chave === selecionado ? 'bg-zinc-800' : ''}`}>
                   <td className="py-1">
-                    <button type="button" onClick={() => onSelecionar(l.chave)} className="text-left underline decoration-zinc-600 underline-offset-2 hover:decoration-zinc-300">
+                    <button
+                      type="button"
+                      onClick={() => onSelecionar(l.chave)}
+                      className="text-left underline decoration-zinc-600 underline-offset-2 hover:decoration-zinc-300"
+                    >
                       {l.nome}
                     </button>
+                    {l.cidadesFaltando && <span className="ml-1 text-amber-300">(incompleto)</span>}
                   </td>
                   <td>
                     {lider ? (
@@ -139,9 +158,12 @@ export function Mapas() {
   const todos = [...estados, ...paises];
 
   // A cor acompanha o candidato enquanto ele liderar em algum lugar.
-  const lideres = [...new Set(todos.flatMap((l) => (l.lider ? [l.lider] : [])))];
+  // Quem já liderou algum lugar mantém a cor, mesmo que deixe de liderar.
+  const numero = new Map(todos.flatMap((l) => l.votos).map((v) => [v.id, Number(v.numero)]));
+  const lideres = [...new Set(todos.flatMap((l) => (l.lider ? [l.lider] : [])))].sort((a, b) => (numero.get(a) ?? 0) - (numero.get(b) ?? 0));
   const [slots, setSlots] = useState<Record<string, number>>({});
-  const novosSlots = atribuirSlots(slots, lideres);
+  const comCor = [...new Set([...Object.keys(slots), ...lideres])];
+  const novosSlots = atribuirSlots(slots, comCor);
   if (novosSlots !== slots) setSlots(novosSlots);
 
   if (!dados) {
@@ -157,10 +179,12 @@ export function Mapas() {
   const porUf = new Map(estados.map((l) => [l.chave, l]));
   const porPais = new Map(paises.map((l) => [l.chave, l]));
   const corDe = (id: string) => (id in novosSlots && novosSlots[id] < CORES.length ? CORES[novosSlots[id]] : OUTROS);
-  const corLocal = (l: Local | undefined) => (!l ? SEM_SECAO : l.lider ? corDe(l.lider) : l.empate ? OUTROS : SEM_VOTOS);
+  const semResposta = new Set(dados.semResposta);
+  const corLocal = (l: Local | undefined, chave: string) =>
+    !l ? (semResposta.has(chave) ? SEM_RESPOSTA : SEM_SECAO) : l.lider ? corDe(l.lider) : l.empate ? OUTROS : SEM_VOTOS;
   const nomeDe = (id: string) => todos.flatMap((l) => l.votos).find((v) => v.id === id);
   const rotulo = (l: Local | undefined, nome: string) => {
-    if (!l) return `${nome}: sem seção eleitoral`;
+    if (!l) return semResposta.has(nome) || semResposta.has(nome.toLowerCase()) ? `${nome}: sem resposta do TSE` : `${nome}: sem seção eleitoral`;
     const lider = l.votos.find((v) => v.id === l.lider);
     return lider ? `${l.nome}: ${lider.nome} lidera` : `${l.nome}: ${l.empate ? 'empate' : 'sem votos apurados'}`;
   };
@@ -175,13 +199,24 @@ export function Mapas() {
       )}
       {dados.falhas > 0 && (
         <p className="rounded-lg border border-amber-500 bg-amber-950 p-3 text-sm">
-          {dados.falhas} {dados.falhas === 1 ? 'local não respondeu' : 'locais não responderam'} nesta atualização e ficaram de fora.
+          {dados.falhas} {dados.falhas === 1 ? 'local não respondeu' : 'locais não responderam'} nesta atualização. Onde havia dado anterior ele foi mantido;
+          países com soma incompleta estão marcados.
         </p>
       )}
-      {erroGeo && <p className="rounded-lg border border-amber-500 bg-amber-950 p-3 text-sm">Não foi possível carregar os contornos dos mapas. As listas abaixo continuam funcionando.</p>}
+      {todos.every((l) => l.total === 0) && (
+        <p className="rounded-lg border border-zinc-700 bg-zinc-900 p-3 text-sm">
+          Ainda não há votos totalizados. O TSE só começa a divulgar a totalização às 17h (horário de Brasília), mesmo para os países onde a votação já
+          terminou. Os mapas se pintam sozinhos quando os primeiros resultados chegarem.
+        </p>
+      )}
+      {erroGeo && (
+        <p className="rounded-lg border border-amber-500 bg-amber-950 p-3 text-sm">
+          Não foi possível carregar os contornos dos mapas. As listas abaixo continuam funcionando.
+        </p>
+      )}
 
       <ul className="flex flex-wrap gap-x-4 gap-y-1 rounded-lg border border-zinc-800 bg-zinc-900 p-3 text-xs text-zinc-300">
-        {lideres.map((id) => {
+        {comCor.map((id) => {
           const c = nomeDe(id);
           return (
             <li key={id} className="flex items-center gap-1.5">
@@ -199,58 +234,71 @@ export function Mapas() {
         <li className="flex items-center gap-1.5">
           <Amostra cor={SEM_SECAO} /> Sem seção eleitoral
         </li>
+        {dados.semResposta.length > 0 && (
+          <li className="flex items-center gap-1.5">
+            <Amostra cor={SEM_RESPOSTA} /> Sem resposta do TSE
+          </li>
+        )}
         <li className="ml-auto text-zinc-500">Última busca: {hora} · atualiza a cada 60s</li>
       </ul>
 
-      <section aria-labelledby="mapa-br" className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
-        <h2 id="mapa-br" className="mb-2 text-lg font-semibold">
-          Brasil por estado
-        </h2>
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-          {geo && (
-            <MapaCoropletico
-              titulo="Mapa do Brasil: quem lidera para presidente em cada estado"
-              features={geo.ufs}
-              chaveDe={chaveUf}
-              projecao="plana"
-              proporcao={0.95}
-              cor={(k) => corLocal(porUf.get(k))}
-              rotulo={(k) => rotulo(porUf.get(k), k.toUpperCase())}
-              selecionado={uf}
-              onSelecionar={setUf}
-            />
-          )}
+      <div className="grid items-start gap-4 xl:grid-cols-2">
+        <section aria-labelledby="mapa-br" className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
+          <h2 id="mapa-br" className="mb-2 text-lg font-semibold">
+            Brasil por estado
+          </h2>
           <div className="space-y-3">
-            <Detalhe local={uf ? porUf.get(uf) : undefined} vazio="Passe o mouse ou toque num estado para ver os votos." corDe={corDe} />
-            <Tabela locais={estados} rotulo="estados" selecionado={uf} onSelecionar={setUf} corDe={corDe} />
+            {geo && (
+              <div className="mx-auto max-w-[520px]">
+                <MapaCoropletico
+                  titulo="Mapa do Brasil: quem lidera para presidente em cada estado"
+                  features={geo.ufs}
+                  chaveDe={chaveUf}
+                  projecao="plana"
+                  proporcao={0.95}
+                  cor={(k) => corLocal(porUf.get(k), k)}
+                  rotulo={(k) => rotulo(porUf.get(k), k.toUpperCase())}
+                  selecionado={uf}
+                  onSelecionar={setUf}
+                />
+              </div>
+            )}
+            <div className="space-y-3">
+              <Detalhe local={uf ? porUf.get(uf) : undefined} vazio="Passe o mouse ou toque num estado para ver os votos." corDe={corDe} />
+              <Tabela locais={estados} rotulo="estados" selecionado={uf} onSelecionar={setUf} corDe={corDe} />
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section aria-labelledby="mapa-mundo" className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
-        <h2 id="mapa-mundo" className="mb-2 text-lg font-semibold">
-          Exterior por país
-        </h2>
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-          {geo && (
-            <MapaCoropletico
-              titulo="Mapa-múndi: quem lidera para presidente entre os eleitores brasileiros de cada país"
-              features={geo.paises}
-              chaveDe={chavePais}
-              projecao="mundo"
-              proporcao={0.5}
-              cor={(k) => corLocal(porPais.get(k))}
-              rotulo={(k) => rotulo(porPais.get(k), k)}
-              selecionado={pais}
-              onSelecionar={(k) => porPais.has(k) && setPais(k)}
-            />
-          )}
+        <section aria-labelledby="mapa-mundo" className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
+          <h2 id="mapa-mundo" className="mb-2 text-lg font-semibold">
+            Exterior por país
+          </h2>
           <div className="space-y-3">
-            <Detalhe local={pais ? porPais.get(pais) : undefined} vazio="Passe o mouse ou toque num país com seção eleitoral brasileira. Países pequenos estão na lista abaixo." corDe={corDe} />
-            <Tabela locais={paises} rotulo="países" selecionado={pais} onSelecionar={setPais} corDe={corDe} />
+            {geo && (
+              <MapaCoropletico
+                titulo="Mapa-múndi: quem lidera para presidente entre os eleitores brasileiros de cada país"
+                features={geo.paises}
+                chaveDe={chavePais}
+                projecao="mundo"
+                proporcao={0.5}
+                cor={(k) => corLocal(porPais.get(k), k)}
+                rotulo={(k) => rotulo(porPais.get(k), k)}
+                selecionado={pais}
+                onSelecionar={(k) => porPais.has(k) && setPais(k)}
+              />
+            )}
+            <div className="space-y-3">
+              <Detalhe
+                local={pais ? porPais.get(pais) : undefined}
+                vazio="Passe o mouse ou toque num país com seção eleitoral brasileira. Países pequenos estão na lista abaixo."
+                corDe={corDe}
+              />
+              <Tabela locais={paises} rotulo="países" selecionado={pais} onSelecionar={setPais} corDe={corDe} />
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </div>
     </div>
   );
 }

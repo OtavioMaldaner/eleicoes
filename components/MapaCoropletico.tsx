@@ -35,27 +35,22 @@ export function MapaCoropletico({ titulo, features, chaveDe, projecao, proporcao
     if (!largura || features.length === 0) return [];
     const colecao: FeatureCollection = { type: 'FeatureCollection', features };
     const proj =
-      projecao === 'plana'
-        ? geoIdentity().reflectY(true).fitSize([largura, altura], colecao)
-        : geoNaturalEarth1().fitSize([largura, altura], colecao);
+      projecao === 'plana' ? geoIdentity().reflectY(true).fitSize([largura, altura], colecao) : geoNaturalEarth1().fitSize([largura, altura], colecao);
     const caminho = geoPath(proj);
-    return features.map((f) => ({ chave: chaveDe(f), d: caminho(f) ?? '' }));
+    return features.map((f, i) => ({ id: `${chaveDe(f)}-${i}`, chave: chaveDe(f), d: caminho(f) ?? '' }));
   }, [features, chaveDe, projecao, largura, altura]);
-
-  // O selecionado é desenhado por último para o contorno ficar por cima.
-  const ordenadas = [...formas].sort((a, b) => Number(a.chave === selecionado) - Number(b.chave === selecionado));
 
   return (
     <div ref={caixa} style={{ minHeight: altura || undefined }}>
       {largura > 0 && (
         <svg width={largura} height={altura} role="img" aria-label={titulo}>
-          {ordenadas.map((f, i) => (
+          {formas.map((f) => (
             <path
-              key={`${f.chave}-${i}`}
+              key={f.id}
               d={f.d}
               fill={cor(f.chave)}
-              stroke={f.chave === selecionado ? '#fafafa' : SUPERFICIE}
-              strokeWidth={f.chave === selecionado ? 2 : 0.75}
+              stroke={SUPERFICIE}
+              strokeWidth={0.75}
               strokeLinejoin="round"
               className="cursor-pointer"
               onPointerEnter={() => onSelecionar(f.chave)}
@@ -64,6 +59,12 @@ export function MapaCoropletico({ titulo, features, chaveDe, projecao, proporcao
               <title>{rotulo(f.chave)}</title>
             </path>
           ))}
+          {/* Contorno do selecionado por cima, sem mexer nos demais. */}
+          {formas
+            .filter((f) => f.chave === selecionado)
+            .map((f) => (
+              <path key={f.id} d={f.d} fill="none" stroke="#fafafa" strokeWidth={2} strokeLinejoin="round" pointerEvents="none" />
+            ))}
         </svg>
       )}
     </div>

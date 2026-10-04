@@ -131,6 +131,12 @@ function Corpo({ cargo, historico, metrica, marcados }: CorpoProps) {
               const ultimo = s.pontos[s.pontos.length - 1];
               return (
                 <g key={s.id}>
+                  {/* Trecho de um ponto só não forma linha: vira um ponto. */}
+                  {s.segmentos
+                    .filter((seg) => seg.length === 1 && seg[0] !== ultimo)
+                    .map((seg) => (
+                      <circle key={seg[0].t} cx={x(seg[0].t)} cy={y(seg[0].y)} r={2} fill={cor(s.id)} />
+                    ))}
                   {s.segmentos.map((seg, n) => (
                     <path
                       key={n}

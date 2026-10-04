@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { liderDe, localDe, somar } from './agregar';
+import { liderDe, localDe, mesclarMapas, somar, type Local, type Mapas } from './agregar';
 import type { Candidato, ResultadoCargo } from '../tse/types';
 
 const cand = (id: string, votos: number): Candidato => ({
@@ -46,5 +46,29 @@ describe('somar', () => {
   });
   it('sem seções não divide por zero', () => {
     expect(somar('x', 'X', []).pctSecoes).toBe(0);
+  });
+});
+
+describe('mesclarMapas', () => {
+  const l = (chave: string, total: number, extra: Partial<Local> = {}): Local => ({
+    chave, nome: chave, secoes: 1, secoesTotalizadas: 1, pctSecoes: 100, total, votos: [], lider: null, empate: false, ...extra,
+  });
+  const m = (estados: Local[], paises: Local[], semResposta: string[] = []): Mapas => ({ estados, paises, semResposta, falhas: semResposta.length, buscadoEm: 'x' });
+
+  it('sem anterior, devolve o novo', () => {
+    const novo = m([l('rs', 1)], []);
+    expect(mesclarMapas(null, novo)).toBe(novo);
+  });
+  it('mantém o último dado do estado ou país que não respondeu', () => {
+    const r = mesclarMapas(m([l('rs', 5), l('sp', 7)], [l('Japan', 3)]), m([l('sp', 9)], [], ['rs', 'Japan']));
+    expect(r.estados.map((e) => [e.chave, e.total]).sort()).toEqual([['rs', 5], ['sp', 9]]);
+    expect(r.paises.map((e) => [e.chave, e.total])).toEqual([['Japan', 3]]);
+    expect(r.semResposta).toEqual(['rs', 'Japan']);
+  });
+  it('troca a soma parcial de um país pela última completa', () => {
+    const completo = l('Portugal', 100);
+    const parcial = l('Portugal', 40, { cidadesFaltando: ['LISBOA'] });
+    expect(mesclarMapas(m([], [completo]), m([], [parcial])).paises[0]).toBe(completo);
+    expect(mesclarMapas(m([], [parcial]), m([], [parcial])).paises[0].total).toBe(40);
   });
 });

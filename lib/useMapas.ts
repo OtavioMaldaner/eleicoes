@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import type { Mapas } from './mapas/agregar';
+import { mesclarMapas, type Mapas } from './mapas/agregar';
 import { buscarMapas } from './mapas/fetch';
 
 const INTERVALO_MS = 60_000;
@@ -29,8 +29,7 @@ export function useMapas() {
       try {
         const d = await buscar();
         if (!vivo) return;
-        // Descarta resposta mais antiga que a já exibida.
-        setDados((a) => (a && d.buscadoEm < a.buscadoEm ? a : d));
+        setDados((a) => mesclarMapas(a, d));
         setErro(null);
       } catch (e) {
         if (vivo) setErro(e instanceof Error ? e.message : String(e));

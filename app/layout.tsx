@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Cabecalho } from "@/components/Cabecalho";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -9,7 +10,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="pt-BR" className="h-full antialiased">
-      <body className="min-h-full font-sans">{children}</body>
+      <body className="min-h-full font-sans">
+        <Cabecalho />
+        {children}
+      </body>
     </html>
   );
 }

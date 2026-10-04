@@ -17,20 +17,34 @@ export function SeletorMunicipio({ valor, onMudar }: Props) {
     setTexto('');
   }
 
+  const pilula = 'rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors';
+  const ativa = 'bg-emerald-400 text-zinc-950';
+  const inativa = 'text-zinc-300 hover:bg-zinc-800 hover:text-white';
+
   return (
     <form
-      className="flex flex-wrap items-end gap-2 rounded-lg border border-zinc-800 bg-zinc-900 p-3"
+      className="flex flex-wrap items-center gap-x-4 gap-y-2"
       onSubmit={(e) => {
         e.preventDefault();
         escolher(texto, false);
       }}
     >
-      <div className="mr-auto">
-        <p className="text-xs uppercase tracking-wide text-zinc-400">Abrangência</p>
-        <p className="font-semibold">{atual ? atual.nm : 'Geral: Brasil e RS'}</p>
+      <span className="text-[11px] font-semibold uppercase tracking-widest text-zinc-400">Abrangência</span>
+      <div className="flex items-center rounded-full border border-zinc-800 bg-zinc-900 p-1">
+        <button type="button" onClick={() => onMudar(null)} aria-pressed={!atual} className={`${pilula} ${atual ? inativa : ativa}`}>
+          Brasil e RS
+        </button>
+        {atual && (
+          <span className={`${pilula} ${ativa} flex items-center gap-2`}>
+            {atual.nm}
+            <button type="button" onClick={() => onMudar(null)} aria-label={`Sair de ${atual.nm} e voltar para Brasil e RS`} className="-mr-1 rounded-full px-1.5 leading-none hover:bg-emerald-600">
+              ×
+            </button>
+          </span>
+        )}
       </div>
-      <label className="flex flex-col text-xs text-zinc-400">
-        Ver um município do RS
+      <label className="flex min-w-0 basis-full items-center gap-2 sm:max-w-sm sm:flex-1 sm:basis-auto">
+        <span className="sr-only">Ver um município do RS</span>
         <input
           list="municipios-rs"
           value={texto}
@@ -40,9 +54,9 @@ export function SeletorMunicipio({ valor, onMudar }: Props) {
             const tipo = (e.nativeEvent as InputEvent).inputType;
             escolher(e.target.value, typeof tipo === 'string' && tipo !== 'insertReplacementText');
           }}
-          placeholder="Digite o nome"
+          placeholder={atual ? 'Trocar de município…' : 'Ver um município do RS…'}
           autoComplete="off"
-          className="mt-1 w-56 rounded border border-zinc-700 bg-zinc-950 px-2 py-1 text-sm text-zinc-100"
+          className="w-full min-w-0 rounded-full border border-zinc-800 bg-zinc-900 px-4 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-emerald-400 focus:outline-none"
         />
       </label>
       <datalist id="municipios-rs">
@@ -50,17 +64,6 @@ export function SeletorMunicipio({ valor, onMudar }: Props) {
           <option key={m.cd} value={m.nm} />
         ))}
       </datalist>
-      <button type="submit" className="rounded border border-zinc-700 px-3 py-1 text-sm text-zinc-200 hover:bg-zinc-800">
-        Ver
-      </button>
-      <button
-        type="button"
-        onClick={() => onMudar(null)}
-        aria-pressed={!atual}
-        className={`rounded border px-3 py-1 text-sm ${atual ? 'border-zinc-700 text-zinc-200 hover:bg-zinc-800' : 'border-emerald-400 bg-emerald-400 text-black'}`}
-      >
-        Geral
-      </button>
     </form>
   );
 }

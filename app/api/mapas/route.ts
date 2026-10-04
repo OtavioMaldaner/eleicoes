@@ -7,6 +7,7 @@ export async function GET() {
   const falhouTudo = dados.estados.length === 0 && dados.paises.length === 0;
   return Response.json(dados, {
     status: falhouTudo ? 502 : 200,
-    headers: { 'Cache-Control': falhouTudo ? 'no-store' : 'public, s-maxage=60' },
+    // Resposta com falhas fica pouco tempo no cache para não prender uma soma incompleta.
+    headers: { 'Cache-Control': falhouTudo ? 'no-store' : `public, s-maxage=${dados.falhas ? 5 : 20}` },
   });
 }

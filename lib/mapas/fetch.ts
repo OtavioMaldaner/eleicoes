@@ -26,18 +26,26 @@ export async function buscarMapas(init?: RequestInit): Promise<Mapas> {
     Promise.all(CIDADES_EXTERIOR.map((c) => buscarLocal(url('zz', c.cd), c.cd, c.nm, init))),
   ]);
 
-  const porPais = new Map<string, { nome: string; locais: Local[] }>();
+  const porPais = new Map<string, { nome: string; locais: Local[]; faltando: string[] }>();
   CIDADES_EXTERIOR.forEach((c, i) => {
+    const grupo = porPais.get(c.pais) ?? { nome: c.paisPt, locais: [], faltando: [] };
     const local = cidades[i];
-    if (!local) return;
-    const grupo = porPais.get(c.pais) ?? { nome: c.paisPt, locais: [] };
-    grupo.locais.push(local);
+    if (local) grupo.locais.push(local);
+    else grupo.faltando.push(c.nm);
     porPais.set(c.pais, grupo);
   });
+  const comDado = [...porPais].filter(([, g]) => g.locais.length > 0);
 
   return {
     estados: estados.filter((e): e is Local => e !== null),
-    paises: [...porPais].map(([pais, g]) => somar(pais, g.nome, g.locais)),
+    paises: comDado.map(([pais, g]) => ({
+      ...somar(pais, g.nome, g.locais),
+      ...(g.faltando.length ? { cidadesFaltando: g.faltando } : {}),
+    })),
+    semResposta: [
+      ...UFS.filter((_, i) => estados[i] === null).map((u) => u.sigla),
+      ...[...porPais].filter(([, g]) => g.locais.length === 0).map(([pais]) => pais),
+    ],
     falhas: [...estados, ...cidades].filter((l) => l === null).length,
     buscadoEm: new Date().toISOString(),
   };

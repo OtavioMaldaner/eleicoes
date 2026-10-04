@@ -14,9 +14,11 @@ export type Local = {
   lider: string | null; // id do candidato; null sem votos ou em empate
   empate: boolean;
   cidades?: string[];
+  cidadesFaltando?: string[]; // cidades do país que não responderam: a soma está incompleta
 };
 
-export type Mapas = { estados: Local[]; paises: Local[]; falhas: number; buscadoEm: string };
+// semResposta: chaves de estados e países sem nenhum dado nesta busca.
+export type Mapas = { estados: Local[]; paises: Local[]; semResposta: string[]; falhas: number; buscadoEm: string };
 
 export function liderDe(votos: { id: string; votos: number }[]): { lider: string | null; empate: boolean } {
   const [primeiro, segundo] = [...votos].sort((a, b) => b.votos - a.votos);
@@ -57,4 +59,21 @@ export function somar(chave: string, nome: string, locais: Local[]): Local {
     ...montar(chave, nome, soma((l) => l.secoes), soma((l) => l.secoesTotalizadas), [...porId.values()]),
     cidades: locais.map((l) => l.nome),
   };
+}
+
+// Estado ou país que não respondeu mantém o último dado; soma parcial de um
+// país dá lugar à última soma completa.
+export function mesclarMapas(anterior: Mapas | null, novo: Mapas): Mapas {
+  if (!anterior) return novo;
+  const faltou = new Set(novo.semResposta);
+  const manter = (antes: Local[], agora: Local[]) => {
+    const velhos = new Map(antes.map((l) => [l.chave, l]));
+    const atuais = agora.map((l) => {
+      const velho = velhos.get(l.chave);
+      return l.cidadesFaltando && velho && !velho.cidadesFaltando ? velho : l;
+    });
+    const presentes = new Set(agora.map((l) => l.chave));
+    return [...atuais, ...antes.filter((l) => faltou.has(l.chave) && !presentes.has(l.chave))];
+  };
+  return { ...novo, estados: manter(anterior.estados, novo.estados), paises: manter(anterior.paises, novo.paises) };
 }
