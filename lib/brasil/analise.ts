@@ -2,7 +2,7 @@ import { fmtPct } from '../formato';
 import { somar, type Local, type VotoCand } from '../mapas/agregar';
 import type { ResultadoCargo } from '../tse/types';
 
-export type CargoBrasil = 'presidente' | 'governador' | 'senador';
+export type CargoBrasil = 'presidente' | 'governador' | 'senador' | 'depFederal';
 
 export const REGIOES: { nome: string; ufs: string[] }[] = [
   { nome: 'Norte', ufs: ['ac', 'ap', 'am', 'pa', 'ro', 'rr', 'to'] },

@@ -4,11 +4,13 @@ import { BASE } from '../tse/config';
 import { normalizar } from '../tse/normalize';
 import type { CargoConfig } from '../tse/types';
 import type { CargoBrasil } from './analise';
+import { localCamara } from './camara';
 
 export const CARGOS_BRASIL: Record<CargoBrasil, { nome: string; eleicao: string; codigo: string }> = {
   presidente: { nome: 'Presidente', eleicao: '6257', codigo: '1' },
   governador: { nome: 'Governador', eleicao: '6259', codigo: '3' },
   senador: { nome: 'Senador', eleicao: '6259', codigo: '5' },
+  depFederal: { nome: 'Câmara dos Deputados', eleicao: '6259', codigo: '6' },
 };
 
 export type Brasil = { cargo: CargoBrasil; nacional: Local | null; estados: Local[]; semResposta: string[]; buscadoEm: string };
@@ -17,12 +19,13 @@ const TEMPO_LIMITE_MS = 8_000;
 
 async function buscarLocal(cargo: CargoBrasil, uf: string, nome: string, init?: RequestInit): Promise<Local | null> {
   const c = CARGOS_BRASIL[cargo];
-  const cfg: CargoConfig = { chave: cargo, nome: c.nome, eleicao: c.eleicao, codigo: c.codigo, uf, proporcional: false };
+  const cfg: CargoConfig = { chave: cargo, nome: c.nome, eleicao: c.eleicao, codigo: c.codigo, uf, proporcional: cargo === 'depFederal' };
   const url = `${BASE}/${c.eleicao}/dados/${uf}/${uf}-c${c.codigo.padStart(4, '0')}-e${c.eleicao.padStart(6, '0')}-u.json`;
   try {
     const r = await fetch(url, { ...init, signal: AbortSignal.timeout(TEMPO_LIMITE_MS) });
     if (!r.ok) return null;
-    return localDe(uf, nome, normalizar(cfg, await r.json()));
+    const resultado = normalizar(cfg, await r.json());
+    return cargo === 'depFederal' ? localCamara(uf, nome, resultado) : localDe(uf, nome, resultado);
   } catch {
     return null;
   }

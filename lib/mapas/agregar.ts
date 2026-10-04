@@ -16,6 +16,15 @@ export type Local = {
   empate: boolean;
   cidades?: string[];
   cidadesFaltando?: string[]; // cidades do país que não responderam: a soma está incompleta
+  camara?: Camara; // só na Câmara dos Deputados: `votos` traz as bancadas do estado
+};
+
+export type Camara = {
+  vagas: number;
+  eleitos: number;
+  fonte: 'tse' | 'projecao' | 'nenhuma';
+  bancadas: { nome: string; vagas: number; votos: number }[];
+  maisVotados: VotoCand[];
 };
 
 // semResposta: chaves de estados e países sem nenhum dado nesta busca.
@@ -28,7 +37,7 @@ export function liderDe(votos: { id: string; votos: number }[]): { lider: string
   return { lider: primeiro.id, empate: false };
 }
 
-function montar(chave: string, nome: string, secoes: number, secoesTotalizadas: number, votos: VotoCand[]): Local {
+export function montar(chave: string, nome: string, secoes: number, secoesTotalizadas: number, votos: VotoCand[]): Local {
   const ordenados = [...votos].sort((a, b) => b.votos - a.votos || Number(a.numero) - Number(b.numero));
   return {
     chave,

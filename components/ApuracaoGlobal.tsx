@@ -49,15 +49,9 @@ type Props = { cargos: ResultadoCargo[]; buscadoEm: string; erro: string | null;
 export function ApuracaoGlobal({ cargos, buscadoEm, erro, municipio }: Props) {
   // Todos os cargos desta página têm a mesma abrangência; o de governador é a referência.
   const a = cargos.find((c) => c.chave === 'governador')?.apuracao ?? cargos.find((c) => c.apuracao)?.apuracao;
-  const naoIniciada = !a || a.secoesTotalizadas === 0;
   const hora = new Date(buscadoEm).toLocaleTimeString('pt-BR');
   return (
     <section aria-label="Apuração" className="space-y-2">
-      {naoIniciada && (
-        <p className="rounded-lg border border-zinc-700 bg-zinc-900 p-3 text-sm">
-          Apuração ainda não iniciada: o TSE começa a divulgar os números às 17h. Você já pode marcar seus candidatos.
-        </p>
-      )}
       {erro && (
         <p role="alert" className="rounded-lg border border-red-500 bg-red-950 p-3 text-sm">
           Dados desatualizados: a última atualização falhou ({erro}). Exibindo o resultado das {hora}.

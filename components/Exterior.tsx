@@ -196,12 +196,6 @@ export function Exterior() {
           países com soma incompleta estão marcados.
         </p>
       )}
-      {todos.every((l) => l.total === 0) && (
-        <p className="rounded-lg border border-zinc-700 bg-zinc-900 p-3 text-sm">
-          Ainda não há votos totalizados. O TSE só começa a divulgar a totalização às 17h (horário de Brasília), mesmo para os países onde a votação já
-          terminou. O mapa se pinta sozinho quando os primeiros resultados chegarem.
-        </p>
-      )}
       {erroGeo && (
         <p className="rounded-lg border border-amber-500 bg-amber-950 p-3 text-sm">
           Não foi possível carregar os contornos do mapa. A lista de países continua funcionando.

@@ -4,6 +4,7 @@ import type { Feature } from 'geojson';
 import { useEffect, useMemo, useState } from 'react';
 import { comoResultado, entidadeDe, placar, porRegiao, vantagem, type CargoBrasil } from '@/lib/brasil/analise';
 import { CARGOS_BRASIL } from '@/lib/brasil/fetch';
+import { composicao } from '@/lib/brasil/camara';
 import { placarSenado } from '@/lib/brasil/senado';
 import { CORES } from '@/lib/cores';
 import { fmtInt, fmtPct } from '@/lib/formato';
@@ -15,6 +16,7 @@ import { useHistorico } from '@/lib/useHistorico';
 import { useMarcados } from '@/lib/useMarcados';
 import { GraficoEvolucao } from './GraficoEvolucao';
 import { MapaBrasil, type Pintura } from './MapaBrasil';
+import { PainelCamara } from './PainelCamara';
 import { PainelSenado } from './PainelSenado';
 
 const SEM_VOTOS = '#3f3f46';
@@ -29,6 +31,7 @@ const ABAS: { cargo: CargoBrasil; rotulo: string }[] = [
   { cargo: 'presidente', rotulo: 'Presidente' },
   { cargo: 'governador', rotulo: 'Governadores' },
   { cargo: 'senador', rotulo: 'Senado' },
+  { cargo: 'depFederal', rotulo: 'Câmara' },
 ];
 
 const pilula = (ativa: boolean) =>
@@ -231,7 +234,14 @@ export function Brasil() {
     .sort((a, b) => b.estados.length - a.estados.length || (peso.get(b.chave) ?? 0) - (peso.get(a.chave) ?? 0))
     .map((l) => l.chave);
   // No Senado, a cor vai para os partidos que ocupam mais vagas (duas por estado).
-  const comCor = cargo === 'senador' ? placarSenado(estados).partidos.map((p) => p.partido) : lideres;
+  const comCor =
+    cargo === 'senador'
+      ? placarSenado(estados).partidos.map((p) => p.partido)
+      : cargo === 'depFederal'
+        ? composicao(estados)
+            .bancadas.filter((b) => b.vagas > 0)
+            .map((b) => b.nome)
+        : lideres;
   const [slotsPorCargo, setSlots] = useState<Partial<Record<CargoBrasil, Record<string, number>>>>({});
   const slots = slotsPorCargo[cargo] ?? SEM_SLOTS;
   // Em presidente, os candidatos do gráfico entram na mesma tabela de cores do mapa.
@@ -270,7 +280,9 @@ export function Brasil() {
     if (!l) return `${k.toUpperCase()}: sem resposta do TSE`;
     if (l.total === 0) return `${l.nome}: sem votos apurados`;
     const p = l.votos[0];
-    return l.lider ? `${l.nome}: ${p.nome} (${p.partido}) lidera com ${fmtPct((p.votos / l.total) * 100)}` : `${l.nome}: empate`;
+    return l.lider
+      ? `${l.nome}: ${p.nome}${p.partido !== p.nome ? ` (${p.partido})` : ''} lidera com ${fmtPct((p.votos / l.total) * 100)}`
+      : `${l.nome}: empate`;
   };
 
   const nomeEnt = (k: string) =>
@@ -341,7 +353,15 @@ export function Brasil() {
       {dados && (
         <div className="grid items-start gap-4 xl:grid-cols-[340px_minmax(0,1fr)_330px]">
           <div className="space-y-4">
-            {!uf && cargo === 'senador' ? (
+            {cargo === 'depFederal' ? (
+              <PainelCamara
+                titulo={uf ? (porUf.get(uf)?.nome ?? uf.toUpperCase()) : 'Brasil'}
+                locais={uf ? estados.filter((l) => l.chave === uf) : estados}
+                cor={corEnt}
+                onBrasil={uf ? () => setUf(null) : undefined}
+                contagem={<Contagem />}
+              />
+            ) : !uf && cargo === 'senador' ? (
               <PainelSenado estados={estados} cor={corEnt} onUf={setUf} contagem={<Contagem />} />
             ) : !uf && cargo !== 'presidente' ? (
               <Placar cargo={cargo} estados={estados} linhas={placar(estados, ent)} cor={corEnt} />
@@ -381,14 +401,16 @@ export function Brasil() {
               {modoAtivo === 'lider' && 'Cada estado tem a cor de quem lidera. '}
               {modoAtivo === 'vantagem' && 'Cor de quem lidera; mais forte quanto maior a distância para o segundo (máximo em 30 pontos). '}
               {modoAtivo === 'candidato' && 'Mais forte quanto maior o percentual do candidato escolhido (máximo em 70%). '}
-              {cargo !== 'presidente' && 'Nestes cargos a cor é do partido. '}
+              {cargo === 'depFederal' ? 'A cor é da bancada mais votada no estado. ' : cargo !== 'presidente' && 'Nestes cargos a cor é do partido. '}
               Clique num estado para ver os candidatos.
             </p>
           </section>
 
           <div className="space-y-4">
             <section className={cartao}>
-              <h2 className="mb-2 text-base font-semibold">{cargo === 'presidente' ? 'Por região' : 'Quem lidera em cada estado'}</h2>
+              <h2 className="mb-2 text-base font-semibold">
+                {cargo === 'presidente' ? 'Por região' : cargo === 'depFederal' ? 'Bancada mais votada em cada estado' : 'Quem lidera em cada estado'}
+              </h2>
               {cargo === 'presidente' ? (
                 <ul className="divide-y divide-zinc-800">
                   {porRegiao(estados).map((r) => (
@@ -429,7 +451,8 @@ export function Brasil() {
                             <>
                               <Amostra cor={cor(l.votos[0])} />
                               <span className="min-w-0 flex-1 truncate">
-                                {l.votos[0].nome} <span className="text-xs text-zinc-500">{l.votos[0].partido}</span>
+                                {l.votos[0].nome}{' '}
+                                {l.votos[0].partido !== l.votos[0].nome && <span className="text-xs text-zinc-500">{l.votos[0].partido}</span>}
                               </span>
                               <span className="tabular-nums">{fmtPct((l.votos[0].votos / l.total) * 100)}</span>
                             </>
