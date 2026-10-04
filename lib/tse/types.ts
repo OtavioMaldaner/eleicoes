@@ -6,6 +6,7 @@ export type CargoConfig = {
   eleicao: string;
   codigo: string;
   uf: string;
+  ufFoto?: string; // pasta das fotos, quando difere de `uf`
   proporcional: boolean;
 };
 

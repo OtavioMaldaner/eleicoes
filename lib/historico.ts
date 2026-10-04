@@ -109,3 +109,31 @@ export function atribuirSlots(anterior: Record<string, number>, ids: string[]): 
   const iguais = Object.keys(anterior).length === ids.length && ids.every((id) => anterior[id] === novo[id]);
   return iguais ? anterior : novo;
 }
+
+// Como atribuirSlots, mas com um número limitado de cores: quem saiu da lista
+// mantém a cor enquanto houver cor livre e só a cede quando um novo desejado
+// precisa dela. Quem não consegue cor recebe um slot >= max.
+export function atribuirSlotsComLimite(anterior: Record<string, number>, desejados: string[], max: number): Record<string, number> {
+  const novo = { ...anterior };
+  const quer = new Set(desejados);
+  for (const id of desejados) {
+    if (id in novo && novo[id] < max) continue;
+    const usados = new Set(Object.values(novo));
+    let livre = 0;
+    while (livre < max && usados.has(livre)) livre++;
+    if (livre < max) {
+      novo[id] = livre;
+      continue;
+    }
+    const cede = Object.keys(novo).find((k) => !quer.has(k) && novo[k] < max);
+    if (cede) {
+      novo[id] = novo[cede];
+      delete novo[cede];
+    } else {
+      novo[id] = max;
+    }
+  }
+  const chaves = Object.keys(novo);
+  const iguais = chaves.length === Object.keys(anterior).length && chaves.every((k) => anterior[k] === novo[k]);
+  return iguais ? anterior : novo;
+}

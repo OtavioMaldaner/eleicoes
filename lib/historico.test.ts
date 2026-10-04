@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   atribuirSlots,
+  atribuirSlotsComLimite,
   criarPonto,
   idsDoGrafico,
   lerHistorico,
@@ -167,5 +168,23 @@ describe('semApuracao', () => {
   });
   it('é falso quando algum cargo já tem seções totalizadas', () => {
     expect(semApuracao({ t: 1, cargos: { presidente: { p: 0, c: {} }, senador: { p: 0.01, c: {} } } })).toBe(false);
+  });
+});
+
+describe('atribuirSlotsComLimite', () => {
+  it('mantém a cor de quem saiu enquanto houver cor livre', () => {
+    expect(atribuirSlotsComLimite({ a: 0, b: 1 }, ['b', 'c'], 3)).toEqual({ a: 0, b: 1, c: 2 });
+  });
+  it('sem cor livre, o novo desejado toma a cor de quem não é mais desejado', () => {
+    expect(atribuirSlotsComLimite({ a: 0, b: 1, c: 2 }, ['b', 'd'], 3)).toEqual({ b: 1, c: 2, d: 0 });
+  });
+  it('sem ninguém para ceder, o novo fica sem cor', () => {
+    const r = atribuirSlotsComLimite({ a: 0, b: 1 }, ['a', 'b', 'c'], 2);
+    expect(r).toMatchObject({ a: 0, b: 1 });
+    expect(r.c).toBeGreaterThanOrEqual(2);
+  });
+  it('devolve o mesmo objeto se nada mudou', () => {
+    const s = { a: 0, b: 1 };
+    expect(atribuirSlotsComLimite(s, ['b'], 3)).toBe(s);
   });
 });

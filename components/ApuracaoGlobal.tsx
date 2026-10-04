@@ -47,15 +47,15 @@ function Bloco({ titulo, a }: { titulo: string; a: Apuracao | null | undefined }
 type Props = { cargos: ResultadoCargo[]; buscadoEm: string; erro: string | null; municipio?: Municipio };
 
 export function ApuracaoGlobal({ cargos, buscadoEm, erro, municipio }: Props) {
-  const br = cargos.find((c) => c.chave === 'presidente')?.apuracao;
-  const rs = cargos.find((c) => c.chave === 'governador')?.apuracao;
-  const naoIniciada = [br, rs].every((a) => !a || a.secoesTotalizadas === 0);
+  // Todos os cargos desta página têm a mesma abrangência; o de governador é a referência.
+  const a = cargos.find((c) => c.chave === 'governador')?.apuracao ?? cargos.find((c) => c.apuracao)?.apuracao;
+  const naoIniciada = !a || a.secoesTotalizadas === 0;
   const hora = new Date(buscadoEm).toLocaleTimeString('pt-BR');
   return (
-    <section aria-label="Apuração global" className="space-y-2">
+    <section aria-label="Apuração" className="space-y-2">
       {naoIniciada && (
         <p className="rounded-lg border border-zinc-700 bg-zinc-900 p-3 text-sm">
-          Apuração ainda não iniciada. Você já pode marcar seus candidatos; os números aparecem aqui sozinhos.
+          Apuração ainda não iniciada: o TSE começa a divulgar os números às 17h. Você já pode marcar seus candidatos.
         </p>
       )}
       {erro && (
@@ -63,15 +63,7 @@ export function ApuracaoGlobal({ cargos, buscadoEm, erro, municipio }: Props) {
           Dados desatualizados: a última atualização falhou ({erro}). Exibindo o resultado das {hora}.
         </p>
       )}
-      {municipio ? (
-        // Na visão municipal os dois arquivos trazem a apuração do mesmo município.
-        <Bloco titulo={municipio.nm} a={rs ?? br} />
-      ) : (
-        <div className="grid gap-3 md:grid-cols-2">
-          <Bloco titulo="Brasil" a={br} />
-          <Bloco titulo="Rio Grande do Sul" a={rs} />
-        </div>
-      )}
+      <Bloco titulo={municipio?.nm ?? 'Rio Grande do Sul'} a={a} />
       <p className="text-xs text-zinc-500">Última busca: {hora} · atualiza a cada 30s</p>
     </section>
   );

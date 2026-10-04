@@ -1,14 +1,6 @@
-import type { Metadata } from 'next';
-import { Mapas } from '@/components/Mapas';
+import { redirect } from 'next/navigation';
 
-export const metadata: Metadata = { title: 'Mapas — Eleições 2026' };
-
-export default function PaginaMapas() {
-  return (
-    <main className="mx-auto max-w-[1800px] p-3 sm:p-4">
-      <h1 className="mb-1 text-xl font-bold">Presidente: quem lidera em cada lugar</h1>
-      <p className="mb-4 text-sm text-zinc-400">Brasil por estado e eleitores no exterior por país.</p>
-      <Mapas />
-    </main>
-  );
+// Endereço antigo da página de mapas.
+export default function Mapas() {
+  redirect('/exterior');
 }

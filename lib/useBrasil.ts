@@ -37,7 +37,7 @@ export function useBrasil(cargo: CargoBrasil) {
           const anterior = mesmo ? a.dados : null;
           if (anterior && d.buscadoEm < anterior.buscadoEm) return a; // resposta atrasada
           const dados = mesclarBrasil(anterior, d);
-          const novos = anterior ? eventos(anterior.estados, dados.estados).map((e) => ({ ...e, t: Date.now() })) : [];
+          const novos = anterior ? eventos(anterior.estados, dados.estados, cargo === 'senador' ? 2 : 1).map((e) => ({ ...e, t: Date.now() })) : [];
           return { cargo, dados, erro: null, eventos: [...novos, ...(mesmo ? a.eventos : [])].slice(0, MAX_EVENTOS) };
         });
       } catch (e) {

@@ -1,4 +1,4 @@
-import { localDe, type Local } from '../mapas/agregar';
+import { localDe, somar, type Local } from '../mapas/agregar';
 import { UFS } from '../mapas/dados';
 import { BASE } from '../tse/config';
 import { normalizar } from '../tse/normalize';
@@ -34,10 +34,13 @@ export async function buscarBrasil(cargo: CargoBrasil, init?: RequestInit): Prom
     cargo === 'presidente' ? buscarLocal(cargo, 'br', 'Brasil', init) : null,
     Promise.all(UFS.map((u) => buscarLocal(cargo, u.sigla, u.nome, init))),
   ]);
+  const recebidos = estados.filter((e): e is Local => e !== null);
+  // Se o arquivo nacional falhar, o total é a soma dos estados recebidos.
+  const somaDosEstados = () => ({ ...somar('br', 'Brasil', recebidos), cidades: undefined });
   return {
     cargo,
-    nacional,
-    estados: estados.filter((e): e is Local => e !== null),
+    nacional: cargo === 'presidente' ? (nacional ?? (recebidos.length ? somaDosEstados() : null)) : null,
+    estados: recebidos,
     semResposta: UFS.filter((_, i) => estados[i] === null).map((u) => u.sigla),
     buscadoEm: new Date().toISOString(),
   };

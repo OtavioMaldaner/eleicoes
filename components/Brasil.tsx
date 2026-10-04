@@ -1,25 +1,24 @@
 'use client';
 
 import type { Feature } from 'geojson';
-import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import { entidadeDe, porRegiao, vantagem, type CargoBrasil } from '@/lib/brasil/analise';
+import { useEffect, useMemo, useState } from 'react';
+import { comoResultado, entidadeDe, placar, porRegiao, vantagem, type CargoBrasil } from '@/lib/brasil/analise';
 import { CARGOS_BRASIL } from '@/lib/brasil/fetch';
 import { CORES } from '@/lib/cores';
 import { fmtInt, fmtPct } from '@/lib/formato';
-import { atribuirSlots } from '@/lib/historico';
+import { atribuirSlotsComLimite, idsDoGrafico } from '@/lib/historico';
 import type { Local, VotoCand } from '@/lib/mapas/agregar';
 import { BASE } from '@/lib/tse/config';
 import { useBrasil } from '@/lib/useBrasil';
 import { useHistorico } from '@/lib/useHistorico';
 import { useMarcados } from '@/lib/useMarcados';
-import { useResultados } from '@/lib/useResultados';
 import { GraficoEvolucao } from './GraficoEvolucao';
 import { MapaBrasil, type Pintura } from './MapaBrasil';
 
 const SEM_VOTOS = '#3f3f46';
 const OUTROS = '#71717a';
 const SEM_RESPOSTA = '#78350f';
+const NEUTRO_CLARO = '#e4e4e7';
 const INICIO_APURACAO = Date.parse('2026-10-04T17:00:00-03:00');
 const SEM_SLOTS: Record<string, number> = {};
 
@@ -76,7 +75,7 @@ function PainelLocal({ cargo, local, cor, onBrasil }: PainelProps) {
         </p>
         {onBrasil && (
           <button type="button" onClick={onBrasil} className="text-xs text-sky-300 underline underline-offset-2">
-            Ver Brasil
+            {cargo === 'presidente' ? 'Ver Brasil' : 'Ver placar'}
           </button>
         )}
       </div>
@@ -107,7 +106,9 @@ function PainelLocal({ cargo, local, cor, onBrasil }: PainelProps) {
                 <div className="flex items-baseline justify-between gap-2">
                   <span className="truncate text-sm font-medium">
                     {v.nome}
-                    {local.total > 0 && i < vagas && cargo === 'senador' && <span className="ml-1.5 text-[10px] font-semibold uppercase text-emerald-300">na vaga</span>}
+                    {local.total > 0 && i < vagas && cargo === 'senador' && (
+                      <span className="ml-1.5 text-[10px] font-semibold uppercase text-emerald-300">na vaga</span>
+                    )}
                   </span>
                   <span className="shrink-0 text-sm font-semibold tabular-nums">{fmtPct(pct)}</span>
                 </div>
@@ -126,7 +127,11 @@ function PainelLocal({ cargo, local, cor, onBrasil }: PainelProps) {
         })}
       </ol>
       {local.votos.length > 6 && (
-        <button type="button" onClick={() => setTodos(!todos)} className="mt-3 w-full rounded-full border border-zinc-700 py-1 text-sm text-zinc-300 hover:bg-zinc-800">
+        <button
+          type="button"
+          onClick={() => setTodos(!todos)}
+          className="mt-3 w-full rounded-full border border-zinc-700 py-1 text-sm text-zinc-300 hover:bg-zinc-800"
+        >
           {todos ? 'Mostrar só os 6 primeiros' : `Ver todos os ${local.votos.length}`}
         </button>
       )}
@@ -146,6 +151,48 @@ function PainelLocal({ cargo, local, cor, onBrasil }: PainelProps) {
   );
 }
 
+type PlacarProps = { cargo: CargoBrasil; estados: Local[]; linhas: { chave: string; estados: string[] }[]; cor: (k: string) => string };
+
+// Visão do país nos cargos estaduais: quantos estados cada partido lidera.
+function Placar({ cargo, estados, linhas, cor }: PlacarProps) {
+  const comVotos = estados.filter((l) => l.total > 0).length;
+  return (
+    <section className={cartao} aria-label={`${CARGOS_BRASIL[cargo].nome}: estados liderados por partido`}>
+      <p className="text-xs uppercase tracking-widest text-zinc-400">{CARGOS_BRASIL[cargo].nome} · Brasil</p>
+      <div className="mt-2">
+        {comVotos === 0 ? (
+          <Contagem />
+        ) : (
+          <p className="text-2xl font-semibold leading-tight">
+            <span className="tabular-nums">{comVotos}</span> de 27 estados com votos apurados
+          </p>
+        )}
+      </div>
+      <h2 className="mt-4 text-sm font-semibold">Estados em que cada partido lidera</h2>
+      {linhas.length === 0 ? (
+        <p className="mt-2 text-sm text-zinc-400">Ainda sem líder em nenhum estado.</p>
+      ) : (
+        <ol className="mt-2 space-y-2">
+          {linhas.map((l) => (
+            <li key={l.chave} className="flex items-baseline gap-2 text-sm">
+              <span className="relative top-0.5">
+                <Amostra cor={cor(l.chave)} />
+              </span>
+              <span className="w-28 shrink-0 truncate font-medium">{l.chave}</span>
+              <span className="w-6 shrink-0 text-right font-semibold tabular-nums">{l.estados.length}</span>
+              <span className="text-xs text-zinc-400">{l.estados.map((u) => u.toUpperCase()).join(' · ')}</span>
+            </li>
+          ))}
+        </ol>
+      )}
+      <p className="mt-4 border-t border-zinc-800 pt-3 text-xs text-zinc-500">
+        {cargo === 'senador' && 'Cada estado elege dois senadores; aqui conta só o mais votado. '}
+        Clique num estado no mapa ou na lista para ver os candidatos.
+      </p>
+    </section>
+  );
+}
+
 export function Brasil() {
   const [cargo, setCargo] = useState<CargoBrasil>('presidente');
   const [modo, setModo] = useState<Modo>('lider');
@@ -153,10 +200,10 @@ export function Brasil() {
   const [ufEscolhida, setUf] = useState<string | null>(null);
   const { dados, erro, eventos } = useBrasil(cargo);
 
-  // Curva de presidente no Brasil: mesmo histórico do painel.
-  const geral = useResultados(null);
+  // Curva de presidente no país, registrada enquanto a aba Presidente está aberta.
   const { marcados } = useMarcados();
-  const historico = useHistorico('geral', geral.dados, marcados);
+  const nacional = useMemo(() => (dados?.nacional ? { cargos: [comoResultado(dados.nacional)], buscadoEm: dados.buscadoEm } : null), [dados]);
+  const historico = useHistorico('brasil', nacional, marcados);
 
   const [ufs, setUfs] = useState<Feature[]>([]);
   useEffect(() => {
@@ -172,14 +219,21 @@ export function Brasil() {
 
   const estados = dados?.estados ?? [];
   const ent = entidadeDe(cargo);
+  const vagas = cargo === 'senador' ? 2 : 1;
 
   // Cor por entidade (candidato ou partido). Quem já recebeu cor a mantém.
   const peso = new Map<string, number>();
   for (const l of estados) for (const v of l.votos) peso.set(ent(v), (peso.get(ent(v)) ?? 0) + v.votos);
-  const lideres = [...new Set(estados.flatMap((l) => (l.lider ? [ent(l.votos[0])] : [])))].sort((a, b) => (peso.get(b) ?? 0) - (peso.get(a) ?? 0));
+  // As cores vão primeiro para quem lidera mais estados; em caso de igualdade, para quem tem mais votos.
+  const lideres = placar(estados, ent)
+    .sort((a, b) => b.estados.length - a.estados.length || (peso.get(b.chave) ?? 0) - (peso.get(a.chave) ?? 0))
+    .map((l) => l.chave);
   const [slotsPorCargo, setSlots] = useState<Partial<Record<CargoBrasil, Record<string, number>>>>({});
   const slots = slotsPorCargo[cargo] ?? SEM_SLOTS;
-  const novosSlots = atribuirSlots(slots, [...new Set([...Object.keys(slots), ...lideres])]);
+  // Em presidente, os candidatos do gráfico entram na mesma tabela de cores do mapa.
+  const doGrafico =
+    cargo === 'presidente' && nacional && nacional.cargos[0].candidatos.some((c) => c.votos > 0) ? idsDoGrafico(nacional.cargos[0], marcados) : [];
+  const novosSlots = atribuirSlotsComLimite(slots, [...new Set([...lideres, ...doGrafico])], CORES.length);
   if (novosSlots !== slots) setSlots({ ...slotsPorCargo, [cargo]: novosSlots });
 
   const corEnt = (k: string) => (k in novosSlots && novosSlots[k] < CORES.length ? CORES[novosSlots[k]] : OUTROS);
@@ -187,7 +241,7 @@ export function Brasil() {
 
   const porUf = new Map(estados.map((l) => [l.chave, l]));
   const semResposta = new Set(dados?.semResposta ?? []);
-  const uf = cargo === 'presidente' ? ufEscolhida : (ufEscolhida ?? 'rs');
+  const uf = ufEscolhida;
   const local = uf ? porUf.get(uf) : (dados?.nacional ?? undefined);
   const candidatos = dados?.nacional?.votos ?? [];
   const focoId = foco ?? candidatos[0]?.id ?? null;
@@ -200,10 +254,11 @@ export function Brasil() {
     if (modoAtivo === 'candidato' && focoId) {
       const v = l.votos.find((x) => x.id === focoId);
       const fatia = v ? v.votos / l.total : 0;
-      return { fill: v && ent(v) in novosSlots ? cor(v) : CORES[0], opacidade: 0.12 + 0.88 * Math.min(fatia / 0.7, 1) };
+      // Tom neutro: neste modo a cor não identifica quem lidera.
+      return { fill: NEUTRO_CLARO, opacidade: 0.1 + 0.9 * Math.min(fatia / 0.7, 1) };
     }
     if (!l.lider) return { fill: OUTROS, opacidade: 1 };
-    return { fill: cor(l.votos[0]), opacidade: modoAtivo === 'vantagem' ? 0.3 + 0.7 * Math.min(vantagem(l) / 30, 1) : 1 };
+    return { fill: cor(l.votos[0]), opacidade: modoAtivo === 'vantagem' ? 0.3 + 0.7 * Math.min(vantagem(l, vagas) / 30, 1) : 1 };
   }
 
   const rotuloUf = (k: string) => {
@@ -214,8 +269,9 @@ export function Brasil() {
     return l.lider ? `${l.nome}: ${p.nome} (${p.partido}) lidera com ${fmtPct((p.votos / l.total) * 100)}` : `${l.nome}: empate`;
   };
 
-  const nomeEnt = (k: string) => (cargo === 'presidente' ? (candidatos.find((v) => v.id === k)?.nome ?? estados.flatMap((l) => l.votos).find((v) => v.id === k)?.nome ?? k) : k);
-  const presidente = geral.dados?.cargos.filter((c) => c.chave === 'presidente') ?? [];
+  const nomeEnt = (k: string) =>
+    cargo === 'presidente' ? (candidatos.find((v) => v.id === k)?.nome ?? estados.flatMap((l) => l.votos).find((v) => v.id === k)?.nome ?? k) : k;
+  const presidente = nacional?.cargos ?? [];
   const hora = dados ? new Date(dados.buscadoEm).toLocaleTimeString('pt-BR') : '';
 
   return (
@@ -257,12 +313,13 @@ export function Brasil() {
         )}
         <div className="ml-auto flex flex-wrap items-center gap-3 text-sm text-zinc-400">
           {dados && <span>Atualizado às {hora}</span>}
-          <Link href="/mapas" className="rounded-full border border-zinc-800 px-3 py-1.5 text-zinc-200 hover:bg-zinc-800">
-            Exterior
-          </Link>
           <button
             type="button"
-            onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen())}
+            onClick={() => {
+              // Nem todo navegador permite tela cheia (iPhone, por exemplo).
+              if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+              else document.documentElement.requestFullscreen?.().catch(() => {});
+            }}
             className="rounded-full border border-zinc-800 px-3 py-1.5 text-zinc-200 hover:bg-zinc-800"
           >
             Tela cheia
@@ -280,8 +337,14 @@ export function Brasil() {
       {dados && (
         <div className="grid items-start gap-4 xl:grid-cols-[340px_minmax(0,1fr)_330px]">
           <div className="space-y-4">
-            <PainelLocal key={`${cargo}-${uf}`} cargo={cargo} local={local} cor={cor} onBrasil={cargo === 'presidente' && uf ? () => setUf(null) : undefined} />
-            {cargo === 'presidente' && presidente.length > 0 && <GraficoEvolucao cargos={presidente} historico={historico} marcados={marcados} />}
+            {!uf && cargo !== 'presidente' ? (
+              <Placar cargo={cargo} estados={estados} linhas={placar(estados, ent)} cor={corEnt} />
+            ) : (
+              <PainelLocal key={`${cargo}-${uf}`} cargo={cargo} local={local} cor={cor} onBrasil={uf ? () => setUf(null) : undefined} />
+            )}
+            {cargo === 'presidente' && presidente.length > 0 && (
+              <GraficoEvolucao cargos={presidente} historico={historico} marcados={marcados} corDe={doGrafico.length ? corEnt : undefined} />
+            )}
           </div>
 
           <section className={`${cartao} order-first xl:order-none`} aria-label="Mapa">
@@ -330,10 +393,16 @@ export function Brasil() {
                       </div>
                       <div className="mt-1 flex h-2 overflow-hidden rounded bg-zinc-800">
                         {r.total > 0 &&
-                          r.votos.slice(0, 4).map((v) => <div key={v.id} style={{ width: `${(v.votos / r.total) * 100}%`, background: cor(v), marginRight: 2 }} />)}
+                          r.votos
+                            .slice(0, 4)
+                            .map((v) => <div key={v.id} style={{ width: `${(v.votos / r.total) * 100}%`, background: cor(v), marginRight: 2 }} />)}
                       </div>
                       <p className="mt-1 text-xs text-zinc-400">
-                        {r.total === 0 ? 'Sem votos apurados' : r.lider ? `${r.votos[0].nome} ${fmtPct((r.votos[0].votos / r.total) * 100)} · ${r.votos[1]?.nome ?? ''} ${r.votos[1] ? fmtPct((r.votos[1].votos / r.total) * 100) : ''}` : 'Empate'}
+                        {r.total === 0
+                          ? 'Sem votos apurados'
+                          : r.lider
+                            ? `${r.votos[0].nome} ${fmtPct((r.votos[0].votos / r.total) * 100)} · ${r.votos[1]?.nome ?? ''} ${r.votos[1] ? fmtPct((r.votos[1].votos / r.total) * 100) : ''}`
+                            : 'Empate'}
                       </p>
                     </li>
                   ))}
@@ -344,7 +413,11 @@ export function Brasil() {
                     .sort((a, b) => a.chave.localeCompare(b.chave))
                     .map((l) => (
                       <li key={l.chave}>
-                        <button type="button" onClick={() => setUf(l.chave)} className={`flex w-full items-center gap-2 px-1 py-1.5 text-left hover:bg-zinc-800 ${l.chave === uf ? 'bg-zinc-800' : ''}`}>
+                        <button
+                          type="button"
+                          onClick={() => setUf(l.chave)}
+                          className={`flex w-full items-center gap-2 px-1 py-1.5 text-left hover:bg-zinc-800 ${l.chave === uf ? 'bg-zinc-800' : ''}`}
+                        >
                           <span className="w-7 font-semibold">{l.chave.toUpperCase()}</span>
                           {l.lider ? (
                             <>
@@ -372,7 +445,9 @@ export function Brasil() {
                 <ol className="space-y-2 text-sm">
                   {eventos.map((e, i) => (
                     <li key={`${e.t}-${e.uf}-${e.tipo}-${i}`} className="flex gap-2">
-                      <span className="shrink-0 text-xs tabular-nums text-zinc-500">{new Date(e.t).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                      <span className="shrink-0 text-xs tabular-nums text-zinc-500">
+                        {new Date(e.t).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
                       <span>{e.texto}</span>
                     </li>
                   ))}

@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { CARGOS, MUNICIPIOS, municipioValido, urlDados } from './config';
+import { CARGOS, MUNICIPIOS, municipioValido, urlDados, urlFoto } from './config';
 
 describe('urlDados', () => {
-  it('mantém as URLs gerais', () => {
-    expect(urlDados(CARGOS[0])).toBe('https://resultados.tse.jus.br/oficial/ele2026/6257/dados/br/br-c0001-e006257-u.json');
+  it('no painel do RS, presidente é a votação no estado, com as fotos nacionais', () => {
+    expect(urlDados(CARGOS[0])).toBe('https://resultados.tse.jus.br/oficial/ele2026/6257/dados/rs/rs-c0001-e006257-u.json');
+    expect(urlFoto(CARGOS[0], '123')).toBe('https://resultados.tse.jus.br/oficial/ele2026/6257/fotos/br/123.jpeg');
+    expect(urlFoto(CARGOS[1], '123')).toBe('https://resultados.tse.jus.br/oficial/ele2026/6259/fotos/rs/123.jpeg');
     expect(urlDados(CARGOS[1])).toBe('https://resultados.tse.jus.br/oficial/ele2026/6259/dados/rs/rs-c0003-e006259-u.json');
   });
   it('monta as URLs municipais, com presidente sob a pasta do RS', () => {

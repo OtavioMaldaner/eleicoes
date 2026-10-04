@@ -32,12 +32,12 @@ export function SeletorMunicipio({ valor, onMudar }: Props) {
       <span className="text-[11px] font-semibold uppercase tracking-widest text-zinc-400">Abrangência</span>
       <div className="flex items-center rounded-full border border-zinc-800 bg-zinc-900 p-1">
         <button type="button" onClick={() => onMudar(null)} aria-pressed={!atual} className={`${pilula} ${atual ? inativa : ativa}`}>
-          Brasil e RS
+          Todo o RS
         </button>
         {atual && (
           <span className={`${pilula} ${ativa} flex items-center gap-2`}>
             {atual.nm}
-            <button type="button" onClick={() => onMudar(null)} aria-label={`Sair de ${atual.nm} e voltar para Brasil e RS`} className="-mr-1 rounded-full px-1.5 leading-none hover:bg-emerald-600">
+            <button type="button" onClick={() => onMudar(null)} aria-label={`Sair de ${atual.nm} e voltar para todo o RS`} className="-mr-1 rounded-full px-1.5 leading-none hover:bg-emerald-600">
               ×
             </button>
           </span>

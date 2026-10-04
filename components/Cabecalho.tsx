@@ -4,9 +4,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const PAGINAS = [
-  { href: '/', rotulo: 'Painel' },
-  { href: '/brasil', rotulo: 'Brasil' },
-  { href: '/mapas', rotulo: 'Mapas' },
+  { href: '/', rotulo: 'Rio Grande do Sul', curto: 'RS' },
+  { href: '/brasil', rotulo: 'Brasil', curto: 'Brasil' },
+  { href: '/exterior', rotulo: 'Exterior', curto: 'Exterior' },
 ];
 
 export function Cabecalho() {
@@ -36,7 +36,8 @@ export function Cabecalho() {
                   ativo ? 'bg-zinc-100 text-zinc-950' : 'text-zinc-300 hover:bg-zinc-800 hover:text-white'
                 }`}
               >
-                {p.rotulo}
+                <span className="sm:hidden">{p.curto}</span>
+                <span className="hidden sm:inline">{p.rotulo}</span>
               </Link>
             );
           })}

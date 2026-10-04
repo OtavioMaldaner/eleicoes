@@ -14,9 +14,10 @@ const compacto = new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFr
 const umaCasa = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 });
 const hora = (t: number) => new Date(t).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-type Props = { cargos: ResultadoCargo[]; historico: Ponto[]; marcados: Marcados };
+// corDe: quando a página já tem uma cor para cada candidato (ex.: o mapa ao lado), o gráfico usa a mesma.
+type Props = { cargos: ResultadoCargo[]; historico: Ponto[]; marcados: Marcados; corDe?: (id: string) => string };
 
-export function GraficoEvolucao({ cargos, historico, marcados }: Props) {
+export function GraficoEvolucao({ cargos, historico, marcados, corDe }: Props) {
   const [chave, setChave] = useState<ChaveCargo>('presidente');
   const [metrica, setMetrica] = useState<Metrica>('pct');
   const cargo = cargos.find((c) => c.chave === chave) ?? cargos[0];
@@ -48,14 +49,14 @@ export function GraficoEvolucao({ cargos, historico, marcados }: Props) {
           Votos
         </button>
       </div>
-      {cargo && <Corpo key={cargo.chave} cargo={cargo} historico={historico} metrica={metrica} marcados={marcados} />}
+      {cargo && <Corpo key={cargo.chave} cargo={cargo} historico={historico} metrica={metrica} marcados={marcados} corDe={corDe} />}
     </section>
   );
 }
 
-type CorpoProps = { cargo: ResultadoCargo; historico: Ponto[]; metrica: Metrica; marcados: Marcados };
+type CorpoProps = { cargo: ResultadoCargo; historico: Ponto[]; metrica: Metrica; marcados: Marcados; corDe?: (id: string) => string };
 
-function Corpo({ cargo, historico, metrica, marcados }: CorpoProps) {
+function Corpo({ cargo, historico, metrica, marcados, corDe }: CorpoProps) {
   const ids = idsDoGrafico(cargo, marcados);
 
   // A cor acompanha o candidato enquanto ele estiver no gráfico.
@@ -77,7 +78,7 @@ function Corpo({ cargo, historico, metrica, marcados }: CorpoProps) {
 
   const pontos = historico.filter((p) => p.cargos[cargo.chave]);
   const candidatos = new Map(cargo.candidatos.map((c) => [c.id, c]));
-  const cor = (id: string) => CORES[novosSlots[id] % CORES.length];
+  const cor = (id: string) => (corDe ? corDe(id) : CORES[novosSlots[id] % CORES.length]);
   const valor = (n: number) => (metrica === 'pct' ? fmtPct(n) : fmtInt(n));
 
   const temGrafico = pontos.length >= 2 && largura > 0;
