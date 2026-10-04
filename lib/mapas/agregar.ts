@@ -10,6 +10,7 @@ export type Local = {
   secoesTotalizadas: number;
   pctSecoes: number;
   total: number;
+  eleitorado?: number;
   votos: VotoCand[]; // do mais para o menos votado
   lider: string | null; // id do candidato; null sem votos ou em empate
   empate: boolean;
@@ -43,7 +44,7 @@ function montar(chave: string, nome: string, secoes: number, secoesTotalizadas: 
 
 export function localDe(chave: string, nome: string, r: ResultadoCargo): Local {
   const votos = r.candidatos.map((c) => ({ id: c.id, numero: c.numero, nome: c.nome, partido: c.partido, votos: c.votos }));
-  return montar(chave, nome, r.apuracao?.secoesTotal ?? 0, r.apuracao?.secoesTotalizadas ?? 0, votos);
+  return { ...montar(chave, nome, r.apuracao?.secoesTotal ?? 0, r.apuracao?.secoesTotalizadas ?? 0, votos), eleitorado: r.apuracao?.eleitorado ?? 0 };
 }
 
 export function somar(chave: string, nome: string, locais: Local[]): Local {
@@ -57,6 +58,7 @@ export function somar(chave: string, nome: string, locais: Local[]): Local {
   const soma = (f: (l: Local) => number) => locais.reduce((s, l) => s + f(l), 0);
   return {
     ...montar(chave, nome, soma((l) => l.secoes), soma((l) => l.secoesTotalizadas), [...porId.values()]),
+    eleitorado: soma((l) => l.eleitorado ?? 0),
     cidades: locais.map((l) => l.nome),
   };
 }

@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 
 const PAGINAS = [
   { href: '/', rotulo: 'Painel' },
+  { href: '/brasil', rotulo: 'Brasil' },
   { href: '/mapas', rotulo: 'Mapas' },
 ];
 
