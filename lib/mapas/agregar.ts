@@ -1,6 +1,6 @@
 import type { ResultadoCargo } from '../tse/types';
 
-export type VotoCand = { id: string; numero: string; nome: string; partido: string; votos: number };
+export type VotoCand = { id: string; numero: string; nome: string; partido: string; votos: number; eleito?: boolean };
 
 // Um estado ou um país, com os votos para presidente.
 export type Local = {
@@ -43,7 +43,7 @@ function montar(chave: string, nome: string, secoes: number, secoesTotalizadas: 
 }
 
 export function localDe(chave: string, nome: string, r: ResultadoCargo): Local {
-  const votos = r.candidatos.map((c) => ({ id: c.id, numero: c.numero, nome: c.nome, partido: c.partido, votos: c.votos }));
+  const votos = r.candidatos.map((c) => ({ id: c.id, numero: c.numero, nome: c.nome, partido: c.partido, votos: c.votos, eleito: c.eleito }));
   return { ...montar(chave, nome, r.apuracao?.secoesTotal ?? 0, r.apuracao?.secoesTotalizadas ?? 0, votos), eleitorado: r.apuracao?.eleitorado ?? 0 };
 }
 

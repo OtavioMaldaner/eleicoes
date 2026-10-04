@@ -4,6 +4,7 @@ import type { Feature } from 'geojson';
 import { useEffect, useMemo, useState } from 'react';
 import { comoResultado, entidadeDe, placar, porRegiao, vantagem, type CargoBrasil } from '@/lib/brasil/analise';
 import { CARGOS_BRASIL } from '@/lib/brasil/fetch';
+import { placarSenado } from '@/lib/brasil/senado';
 import { CORES } from '@/lib/cores';
 import { fmtInt, fmtPct } from '@/lib/formato';
 import { atribuirSlotsComLimite, idsDoGrafico } from '@/lib/historico';
@@ -14,6 +15,7 @@ import { useHistorico } from '@/lib/useHistorico';
 import { useMarcados } from '@/lib/useMarcados';
 import { GraficoEvolucao } from './GraficoEvolucao';
 import { MapaBrasil, type Pintura } from './MapaBrasil';
+import { PainelSenado } from './PainelSenado';
 
 const SEM_VOTOS = '#3f3f46';
 const OUTROS = '#71717a';
@@ -228,12 +230,14 @@ export function Brasil() {
   const lideres = placar(estados, ent)
     .sort((a, b) => b.estados.length - a.estados.length || (peso.get(b.chave) ?? 0) - (peso.get(a.chave) ?? 0))
     .map((l) => l.chave);
+  // No Senado, a cor vai para os partidos que ocupam mais vagas (duas por estado).
+  const comCor = cargo === 'senador' ? placarSenado(estados).partidos.map((p) => p.partido) : lideres;
   const [slotsPorCargo, setSlots] = useState<Partial<Record<CargoBrasil, Record<string, number>>>>({});
   const slots = slotsPorCargo[cargo] ?? SEM_SLOTS;
   // Em presidente, os candidatos do gráfico entram na mesma tabela de cores do mapa.
   const doGrafico =
     cargo === 'presidente' && nacional && nacional.cargos[0].candidatos.some((c) => c.votos > 0) ? idsDoGrafico(nacional.cargos[0], marcados) : [];
-  const novosSlots = atribuirSlotsComLimite(slots, [...new Set([...lideres, ...doGrafico])], CORES.length);
+  const novosSlots = atribuirSlotsComLimite(slots, [...new Set([...comCor, ...doGrafico])], CORES.length);
   if (novosSlots !== slots) setSlots({ ...slotsPorCargo, [cargo]: novosSlots });
 
   const corEnt = (k: string) => (k in novosSlots && novosSlots[k] < CORES.length ? CORES[novosSlots[k]] : OUTROS);
@@ -337,7 +341,9 @@ export function Brasil() {
       {dados && (
         <div className="grid items-start gap-4 xl:grid-cols-[340px_minmax(0,1fr)_330px]">
           <div className="space-y-4">
-            {!uf && cargo !== 'presidente' ? (
+            {!uf && cargo === 'senador' ? (
+              <PainelSenado estados={estados} cor={corEnt} onUf={setUf} contagem={<Contagem />} />
+            ) : !uf && cargo !== 'presidente' ? (
               <Placar cargo={cargo} estados={estados} linhas={placar(estados, ent)} cor={corEnt} />
             ) : (
               <PainelLocal key={`${cargo}-${uf}`} cargo={cargo} local={local} cor={cor} onBrasil={uf ? () => setUf(null) : undefined} />
