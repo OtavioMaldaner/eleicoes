@@ -9,6 +9,8 @@ export type CargoConfig = {
   proporcional: boolean;
 };
 
+export type Municipio = { cd: string; nm: string };
+
 export type Candidato = {
   id: string;
   numero: string;

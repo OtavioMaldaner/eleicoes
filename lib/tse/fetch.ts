@@ -4,11 +4,11 @@ import type { ResultadoCargo, Resultados } from './types';
 
 const TEMPO_LIMITE_MS = 8_000;
 
-export async function buscarResultados(init?: RequestInit): Promise<Resultados> {
+export async function buscarResultados(init?: RequestInit, municipio?: string): Promise<Resultados> {
   const cargos = await Promise.all(
     CARGOS.map(async (cfg): Promise<ResultadoCargo> => {
       try {
-        const r = await fetch(urlDados(cfg), { ...init, signal: AbortSignal.timeout(TEMPO_LIMITE_MS) });
+        const r = await fetch(urlDados(cfg, municipio), { ...init, signal: AbortSignal.timeout(TEMPO_LIMITE_MS) });
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return normalizar(cfg, await r.json());
       } catch (e) {

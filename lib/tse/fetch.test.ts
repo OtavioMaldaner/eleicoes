@@ -35,6 +35,14 @@ describe('buscarResultados', () => {
     expect(typeof r.buscadoEm).toBe('string');
   });
 
+  it('consulta os arquivos do município quando informado', async () => {
+    stubFetch();
+    await buscarResultados(undefined, '88013');
+    const urls = vi.mocked(fetch).mock.calls.map(([u]) => String(u));
+    expect(urls).toHaveLength(5);
+    expect(urls.every((u) => u.includes('/dados/rs/rs88013-c'))).toBe(true);
+  });
+
   it('passa um sinal de tempo limite em cada requisição, preservando as opções', async () => {
     stubFetch();
     await buscarResultados({ cache: 'no-store' });
