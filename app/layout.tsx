@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/next";
 import type { Metadata } from "next";
 import { Cabecalho } from "@/components/Cabecalho";
 import "./globals.css";
@@ -13,6 +14,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full font-sans">
         <Cabecalho />
         {children}
+        <Analytics />
       </body>
     </html>
   );
