@@ -1,5 +1,5 @@
 import { urlFoto } from './config';
-import type { Apuracao, Candidato, CargoConfig, ResultadoCargo } from './types';
+import type { Apuracao, Bancada, Candidato, CargoConfig, ResultadoCargo } from './types';
 
 export function num(s: unknown): number {
   if (typeof s !== 'string' || s === '') return 0;
@@ -15,14 +15,30 @@ export function normalizar(cfg: CargoConfig, bruto: unknown): ResultadoCargo {
   const carg = b?.carg?.[0];
   if (!carg) throw new Error('Formato inesperado: sem carg[0]');
 
+  const TIPOS: Record<string, Bancada['tipo']> = { i: 'partido', f: 'federacao', c: 'coligacao' };
   const vistos = new Set<string>();
   const candidatos: Candidato[] = [];
-  for (const agr of carg.agr ?? [])
-    for (const par of agr.par ?? [])
+  const bancadas: Bancada[] = [];
+  for (const agr of carg.agr ?? []) {
+    const bancada: Bancada = {
+      id: txt(agr.n),
+      nome: txt(agr.com).trim() || txt(agr.nm),
+      tipo: TIPOS[txt(agr.tp)] ?? 'partido',
+      vagas: num(agr.vag),
+      votosNominais: 0,
+      votosLegenda: 0,
+      votos: 0,
+      candidatos: 0,
+    };
+    bancadas.push(bancada);
+    for (const par of agr.par ?? []) {
+      bancada.votosNominais += num(par.tvtn);
+      bancada.votosLegenda += num(par.tvtl);
       for (const c of par.cand ?? []) {
         const id = txt(c.sqcand);
         if (!id || vistos.has(id)) continue;
         vistos.add(id);
+        bancada.candidatos++;
         const vices = (c.vs ?? []).map((v: any) => txt(v.nmu)).filter(Boolean);
         candidatos.push({
           id,
@@ -37,15 +53,24 @@ export function normalizar(cfg: CargoConfig, bruto: unknown): ResultadoCargo {
           posicao: 0,
           posicaoPartido: 0,
           fotoUrl: urlFoto(cfg, id),
+          ...(cfg.proporcional ? { bancada: bancada.id } : {}),
         });
       }
+    }
+    bancada.votos = bancada.votosNominais + bancada.votosLegenda;
+  }
 
   candidatos.sort((x, y) => y.votos - x.votos || Number(x.numero) - Number(y.numero));
   const porPartido = new Map<string, number>();
+  const porBancada = new Map<string, number>();
   candidatos.forEach((c, i) => {
     c.posicao = i + 1;
     c.posicaoPartido = (porPartido.get(c.partido) ?? 0) + 1;
     porPartido.set(c.partido, c.posicaoPartido);
+    if (c.bancada) {
+      c.posicaoBancada = (porBancada.get(c.bancada) ?? 0) + 1;
+      porBancada.set(c.bancada, c.posicaoBancada);
+    }
   });
 
   const { s = {}, e = {}, v = {} } = b;
@@ -74,5 +99,6 @@ export function normalizar(cfg: CargoConfig, bruto: unknown): ResultadoCargo {
     proporcional: cfg.proporcional,
     apuracao,
     candidatos,
+    ...(cfg.proporcional ? { bancadas: bancadas.sort((x, y) => y.votos - x.votos), quociente: num(carg.qe) } : {}),
   };
 }

@@ -25,6 +25,21 @@ export type Candidato = {
   posicao: number;
   posicaoPartido: number;
   fotoUrl: string;
+  // Só nos cargos proporcionais: a bancada (partido ou federação) e a posição dentro dela.
+  bancada?: string;
+  posicaoBancada?: number;
+};
+
+// Partido isolado ou federação que disputa as vagas de um cargo proporcional.
+export type Bancada = {
+  id: string;
+  nome: string;
+  tipo: 'partido' | 'federacao' | 'coligacao';
+  vagas: number; // vagas informadas pelo TSE (0 enquanto não informa)
+  votosNominais: number;
+  votosLegenda: number;
+  votos: number;
+  candidatos: number;
 };
 
 export type Apuracao = {
@@ -52,6 +67,8 @@ export type ResultadoCargo = {
   proporcional: boolean;
   apuracao: Apuracao | null;
   candidatos: Candidato[];
+  bancadas?: Bancada[]; // do mais para o menos votado
+  quociente?: number; // quociente eleitoral informado pelo TSE
   erro?: string;
 };
 

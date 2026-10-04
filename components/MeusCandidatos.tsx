@@ -1,5 +1,6 @@
 'use client';
 
+import { vagasPorBancada } from '@/lib/bancadas';
 import type { Marca, Marcados } from '@/lib/marcados';
 import type { Candidato, ResultadoCargo } from '@/lib/tse/types';
 import { fmtInt, fmtPct } from '@/lib/formato';
@@ -8,6 +9,10 @@ import { BotoesMarca, Situacao } from './LinhaCandidato';
 type Props = { cargos: ResultadoCargo[]; marcados: Marcados; alternar: (id: string, m: Marca) => void };
 
 function Cartao({ c, cargo, marca, alternar }: { c: Candidato; cargo: ResultadoCargo; marca: Marca; alternar: Props['alternar'] }) {
+  // Nos proporcionais, o que decide é a posição dentro da bancada e quantas vagas ela tem.
+  const bancada = cargo.bancadas?.find((b) => b.id === c.bancada);
+  const { vagas, fonte } = vagasPorBancada(cargo.bancadas ?? [], cargo.vagas);
+  const vagasDaBancada = bancada ? (vagas.get(bancada.id) ?? 0) : 0;
   const acima = cargo.candidatos[c.posicao - 2];
   const abaixo = cargo.candidatos[c.posicao];
   return (
@@ -35,6 +40,12 @@ function Cartao({ c, cargo, marca, alternar }: { c: Candidato; cargo: ResultadoC
         <p className="text-xs text-zinc-300">
           {c.posicao}º de {cargo.candidatos.length} · {c.posicaoPartido}º no {c.partido} · {cargo.vagas} {cargo.vagas === 1 ? 'vaga' : 'vagas'}
         </p>
+        {bancada && fonte !== 'nenhuma' && (
+          <p className={`text-xs ${(c.posicaoBancada ?? Infinity) <= vagasDaBancada ? 'text-emerald-300' : 'text-zinc-300'}`}>
+            {c.posicaoBancada}º na bancada {bancada.nome}, que tem {vagasDaBancada} {vagasDaBancada === 1 ? 'vaga' : 'vagas'}
+            {fonte === 'projecao' ? ' (projeção)' : ''}: {(c.posicaoBancada ?? Infinity) <= vagasDaBancada ? 'dentro das vagas' : 'fora das vagas'}
+          </p>
+        )}
         <p className="text-xs tabular-nums text-zinc-400">
           {acima && (
             <>
