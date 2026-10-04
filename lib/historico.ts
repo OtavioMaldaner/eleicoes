@@ -24,6 +24,11 @@ export function criarPonto(r: Resultados, marcados: Marcados, agora: number): Po
   return { t: agora, cargos };
 }
 
+// Antes da apuração começar não há o que registrar.
+export function semApuracao(ponto: Ponto): boolean {
+  return Object.values(ponto.cargos).every((c) => c.p === 0);
+}
+
 // Devolve o mesmo array quando o ponto não entra (conteúdo repetido ou cedo demais).
 export function registrar(hist: Ponto[], ponto: Ponto): Ponto[] {
   const ultimo = hist.at(-1);

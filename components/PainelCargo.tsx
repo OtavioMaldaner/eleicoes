@@ -8,13 +8,13 @@ import { LinhaCandidato } from './LinhaCandidato';
 
 const TOPO = 10;
 
-type Props = { cargo: ResultadoCargo; marcados: Marcados; alternar: (id: string, m: Marca) => void };
+type Props = { cargo: ResultadoCargo; marcados: Marcados; alternar: (id: string, m: Marca) => void; destacarVaga: boolean };
 
-export function PainelCargo({ cargo, marcados, alternar }: Props) {
+export function PainelCargo({ cargo, marcados, alternar, destacarVaga }: Props) {
   const [expandido, setExpandido] = useState(false);
   const [busca, setBusca] = useState('');
 
-  const naVaga = (c: Candidato) => c.eleito || (!cargo.proporcional && c.votos > 0 && c.posicao <= cargo.vagas);
+  const naVaga = (c: Candidato) => c.eleito || (destacarVaga && !cargo.proporcional && c.votos > 0 && c.posicao <= cargo.vagas);
   const linha = (c: Candidato) => <LinhaCandidato key={c.id} c={c} marca={marcados[c.id]} naVaga={naVaga(c)} onMarcar={alternar} />;
 
   let fixos: Candidato[] = [];

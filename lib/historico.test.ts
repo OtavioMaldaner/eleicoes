@@ -5,6 +5,7 @@ import {
   idsDoGrafico,
   lerHistorico,
   registrar,
+  semApuracao,
   series,
   INTERVALO_MIN_MS,
   MAX_PONTOS,
@@ -136,5 +137,15 @@ describe('atribuirSlots', () => {
   it('devolve o mesmo objeto se nada mudou', () => {
     const s = { a: 0, b: 1 };
     expect(atribuirSlots(s, ['b', 'a'])).toBe(s);
+  });
+});
+
+describe('semApuracao', () => {
+  it('é verdadeiro quando nenhum cargo tem seção totalizada', () => {
+    expect(semApuracao({ t: 1, cargos: { presidente: { p: 0, c: {} }, senador: { p: 0, c: {} } } })).toBe(true);
+    expect(semApuracao({ t: 1, cargos: {} })).toBe(true);
+  });
+  it('é falso quando algum cargo já tem seções totalizadas', () => {
+    expect(semApuracao({ t: 1, cargos: { presidente: { p: 0, c: {} }, senador: { p: 0.01, c: {} } } })).toBe(false);
   });
 });

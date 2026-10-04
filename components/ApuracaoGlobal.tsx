@@ -1,6 +1,6 @@
 'use client';
 
-import type { Apuracao, ResultadoCargo } from '@/lib/tse/types';
+import type { Apuracao, Municipio, ResultadoCargo } from '@/lib/tse/types';
 import { fmtInt, fmtPct } from '@/lib/formato';
 
 function Bloco({ titulo, a }: { titulo: string; a: Apuracao | null | undefined }) {
@@ -44,9 +44,9 @@ function Bloco({ titulo, a }: { titulo: string; a: Apuracao | null | undefined }
   );
 }
 
-type Props = { cargos: ResultadoCargo[]; buscadoEm: string; erro: string | null };
+type Props = { cargos: ResultadoCargo[]; buscadoEm: string; erro: string | null; municipio?: Municipio };
 
-export function ApuracaoGlobal({ cargos, buscadoEm, erro }: Props) {
+export function ApuracaoGlobal({ cargos, buscadoEm, erro, municipio }: Props) {
   const br = cargos.find((c) => c.chave === 'presidente')?.apuracao;
   const rs = cargos.find((c) => c.chave === 'governador')?.apuracao;
   const naoIniciada = [br, rs].every((a) => !a || a.secoesTotalizadas === 0);
@@ -63,10 +63,15 @@ export function ApuracaoGlobal({ cargos, buscadoEm, erro }: Props) {
           Dados desatualizados: a última atualização falhou ({erro}). Exibindo o resultado das {hora}.
         </p>
       )}
-      <div className="grid gap-3 md:grid-cols-2">
-        <Bloco titulo="Brasil" a={br} />
-        <Bloco titulo="Rio Grande do Sul" a={rs} />
-      </div>
+      {municipio ? (
+        // Na visão municipal os dois arquivos trazem a apuração do mesmo município.
+        <Bloco titulo={municipio.nm} a={rs ?? br} />
+      ) : (
+        <div className="grid gap-3 md:grid-cols-2">
+          <Bloco titulo="Brasil" a={br} />
+          <Bloco titulo="Rio Grande do Sul" a={rs} />
+        </div>
+      )}
       <p className="text-xs text-zinc-500">Última busca: {hora} · atualiza a cada 30s</p>
     </section>
   );
