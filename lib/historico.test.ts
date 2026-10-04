@@ -94,7 +94,7 @@ describe('lerHistorico', () => {
     expect(lerHistorico(JSON.stringify(h))).toEqual(h);
   });
   it('trata vazio, corrompido e formato errado como vazio', () => {
-    for (const raw of [null, '', '{', '{}', '"x"', '[1,2]', '[{"t":"a"}]', '[{"t":1}]']) expect(lerHistorico(raw)).toEqual([]);
+    for (const raw of [null, '', '{', '{}', '"x"', '[1,2]', '[{"t":"a"}]', '[{"t":1}]', '[{"t":1,"cargos":{"presidente":{}}}]', '[{"t":1,"cargos":{"presidente":null}}]', '[{"t":1,"cargos":{"presidente":{"p":"x","c":{}}}}]']) expect(lerHistorico(raw)).toEqual([]);
   });
 });
 
@@ -118,12 +118,32 @@ describe('series', () => {
     { t: 3, cargos: {} },
   ];
   it('extrai votos ou percentual', () => {
-    expect(series(h, 'presidente', ['a'], 'votos')).toEqual([{ id: 'a', pontos: [{ t: 1, y: 10 }, { t: 2, y: 20 }] }]);
+    expect(series(h, 'presidente', ['a'], 'votos')).toEqual([
+      { id: 'a', pontos: [{ t: 1, y: 10 }, { t: 2, y: 20 }], segmentos: [[{ t: 1, y: 10 }, { t: 2, y: 20 }]] },
+    ]);
     expect(series(h, 'presidente', ['a'], 'pct')[0].pontos.map((p) => p.y)).toEqual([1.5, 2.5]);
   });
   it('pula os pontos em que o candidato ou o cargo não aparece', () => {
     expect(series(h, 'presidente', ['b'], 'votos')[0].pontos).toEqual([{ t: 1, y: 5 }]);
     expect(series(h, 'presidente', ['z'], 'votos')[0].pontos).toEqual([]);
+  });
+});
+
+describe('series com lacunas', () => {
+  const c = (ids: string[]) => ({ presidente: { p: 1, c: Object.fromEntries(ids.map((id) => [id, [1, 1] as [number, number]])) } });
+  const h: Ponto[] = [
+    { t: 1, cargos: c(['a']) },
+    { t: 2, cargos: c(['a']) },
+    { t: 3, cargos: c(['b']) },
+    { t: 4, cargos: {} },
+    { t: 5, cargos: c(['a']) },
+  ];
+  it('quebra a linha onde o candidato some, sem ligar os trechos', () => {
+    expect(series(h, 'presidente', ['a'], 'votos')[0].segmentos.map((s) => s.map((p) => p.t))).toEqual([[1, 2], [5]]);
+  });
+  it('ponto sem o cargo (erro naquele ciclo) não quebra a linha', () => {
+    const h2: Ponto[] = [{ t: 1, cargos: c(['a']) }, { t: 2, cargos: {} }, { t: 3, cargos: c(['a']) }];
+    expect(series(h2, 'presidente', ['a'], 'votos')[0].segmentos.map((s) => s.map((p) => p.t))).toEqual([[1, 3]]);
   });
 });
 

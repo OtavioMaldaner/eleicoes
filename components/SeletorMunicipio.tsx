@@ -1,16 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { acharMunicipio } from '@/lib/tse/buscaMunicipio';
 import { MUNICIPIOS } from '@/lib/tse/config';
-
-const chave = (s: string) =>
-  s
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toUpperCase()
-    .trim();
-
-const NOMES = MUNICIPIOS.map((m) => ({ ...m, k: chave(m.nm) }));
 
 type Props = { valor: string | null; onMudar: (cd: string | null) => void };
 
@@ -19,12 +11,9 @@ export function SeletorMunicipio({ valor, onMudar }: Props) {
   const atual = MUNICIPIOS.find((m) => m.cd === valor);
 
   function escolher(v: string, aoDigitar: boolean) {
-    const k = chave(v);
-    const exato = NOMES.find((m) => m.k === k);
-    if (!exato) return;
-    // Ao digitar, espera se o texto ainda pode virar outro município (ex.: "SANTA MARIA DO HERVAL").
-    if (aoDigitar && NOMES.some((m) => m.k !== k && m.k.startsWith(k))) return;
-    onMudar(exato.cd);
+    const cd = acharMunicipio(v, aoDigitar);
+    if (!cd) return;
+    onMudar(cd);
     setTexto('');
   }
 
@@ -47,7 +36,9 @@ export function SeletorMunicipio({ valor, onMudar }: Props) {
           value={texto}
           onChange={(e) => {
             setTexto(e.target.value);
-            escolher(e.target.value, true);
+            // Escolher um item da lista não chega como digitação e vale na hora.
+            const tipo = (e.nativeEvent as InputEvent).inputType;
+            escolher(e.target.value, typeof tipo === 'string' && tipo !== 'insertReplacementText');
           }}
           placeholder="Digite o nome"
           autoComplete="off"

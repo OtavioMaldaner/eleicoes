@@ -5,7 +5,9 @@ import type { ChaveCargo, ResultadoCargo, Resultados } from './tse/types';
 export type PontoCargo = { p: number; c: Record<string, [number, number]> };
 export type Ponto = { t: number; cargos: Partial<Record<ChaveCargo, PontoCargo>> };
 export type Metrica = 'pct' | 'votos';
-export type Serie = { id: string; pontos: { t: number; y: number }[] };
+type XY = { t: number; y: number };
+// segmentos: trechos contínuos da linha; quebra onde o candidato some de um ponto.
+export type Serie = { id: string; pontos: XY[]; segmentos: XY[][] };
 
 export const MAX_PONTOS = 400;
 export const INTERVALO_MIN_MS = 60_000;
@@ -47,8 +49,18 @@ export function lerHistorico(raw: string | null): Ponto[] {
   try {
     const o: unknown = JSON.parse(raw ?? '');
     if (!Array.isArray(o)) return [];
+    const cargoOk = (c: unknown) => {
+      const x = c as PontoCargo | null;
+      return !!x && typeof x === 'object' && typeof x.p === 'number' && !!x.c && typeof x.c === 'object';
+    };
     const ok = o.every(
-      (p) => p && typeof p === 'object' && typeof p.t === 'number' && p.cargos && typeof p.cargos === 'object',
+      (p) =>
+        p &&
+        typeof p === 'object' &&
+        typeof p.t === 'number' &&
+        p.cargos &&
+        typeof p.cargos === 'object' &&
+        Object.values(p.cargos).every(cargoOk),
     );
     return ok ? (o as Ponto[]) : [];
   } catch {
@@ -64,13 +76,22 @@ export function idsDoGrafico(cargo: ResultadoCargo, marcados: Marcados): string[
 
 export function series(hist: Ponto[], chave: ChaveCargo, ids: string[], metrica: Metrica): Serie[] {
   const i = metrica === 'votos' ? 0 : 1;
-  return ids.map((id) => ({
-    id,
-    pontos: hist.flatMap((p) => {
-      const v = p.cargos[chave]?.c[id];
-      return v ? [{ t: p.t, y: v[i] }] : [];
-    }),
-  }));
+  return ids.map((id) => {
+    const segmentos: XY[][] = [];
+    let aberto: XY[] | null = null;
+    for (const p of hist) {
+      const cargo = p.cargos[chave];
+      if (!cargo) continue; // cargo com erro naquele ciclo: não quebra a linha
+      const v = cargo.c[id];
+      if (!v) {
+        aberto = null;
+        continue;
+      }
+      if (!aberto) segmentos.push((aberto = []));
+      aberto.push({ t: p.t, y: v[i] });
+    }
+    return { id, pontos: segmentos.flat(), segmentos };
+  });
 }
 
 // A cor acompanha o candidato: quem continua mantém o slot; quem entra pega o menor livre.

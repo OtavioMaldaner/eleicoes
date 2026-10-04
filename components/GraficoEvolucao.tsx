@@ -133,14 +133,17 @@ function Corpo({ cargo, historico, metrica, marcados }: CorpoProps) {
               const ultimo = s.pontos[s.pontos.length - 1];
               return (
                 <g key={s.id}>
-                  <path
-                    d={s.pontos.map((p, i) => `${i ? 'L' : 'M'}${x(p.t).toFixed(1)},${y(p.y).toFixed(1)}`).join('')}
-                    fill="none"
-                    stroke={cor(s.id)}
-                    strokeWidth={2}
-                    strokeLinejoin="round"
-                    strokeLinecap="round"
-                  />
+                  {s.segmentos.map((seg, n) => (
+                    <path
+                      key={n}
+                      d={seg.map((p, i) => `${i ? 'L' : 'M'}${x(p.t).toFixed(1)},${y(p.y).toFixed(1)}`).join('')}
+                      fill="none"
+                      stroke={cor(s.id)}
+                      strokeWidth={2}
+                      strokeLinejoin="round"
+                      strokeLinecap="round"
+                    />
+                  ))}
                   <circle cx={x(ultimo.t)} cy={y(ultimo.y)} r={4} fill={cor(s.id)} stroke={SUPERFICIE} strokeWidth={2} />
                 </g>
               );
