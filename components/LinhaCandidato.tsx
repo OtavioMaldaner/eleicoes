@@ -2,6 +2,7 @@
 
 import type { Marca } from '@/lib/marcados';
 import type { Candidato } from '@/lib/tse/types';
+import { corPartido } from '@/lib/cores';
 import { fmtInt, fmtPct } from '@/lib/formato';
 
 export function BotoesMarca({ id, marca, onMarcar }: { id: string; marca?: Marca; onMarcar: (id: string, m: Marca) => void }) {
@@ -57,7 +58,7 @@ export function LinhaCandidato({ c, marca, naVaga, onMarcar }: Props) {
         <span className="shrink-0 font-semibold tabular-nums">{fmtPct(c.percentual)}</span>
       </div>
       <div className="mt-1 h-1.5 overflow-hidden rounded bg-zinc-800">
-        <div className={`h-full ${naVaga ? 'bg-emerald-400' : 'bg-zinc-500'}`} style={{ width: `${Math.min(c.percentual, 100)}%` }} />
+        <div className="h-full" style={{ width: `${Math.min(c.percentual, 100)}%`, background: corPartido(c.partido) }} />
       </div>
       <div className="mt-1 flex flex-wrap items-center justify-between gap-2 text-xs text-zinc-400">
         <span className="flex items-center gap-2">

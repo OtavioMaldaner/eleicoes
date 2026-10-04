@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { atribuirSlots, idsDoGrafico, series, type Metrica, type Ponto } from '@/lib/historico';
+import { idsDoGrafico, series, type Metrica, type Ponto } from '@/lib/historico';
 import type { Marcados } from '@/lib/marcados';
 import type { ChaveCargo, ResultadoCargo } from '@/lib/tse/types';
-import { CORES, SUPERFICIE } from '@/lib/cores';
+import { coresDosCandidatos, SUPERFICIE } from '@/lib/cores';
 import { fmtInt, fmtPct } from '@/lib/formato';
 
 const ALTURA = 280;
@@ -14,10 +14,9 @@ const compacto = new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFr
 const umaCasa = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 });
 const hora = (t: number) => new Date(t).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-// corDe: quando a página já tem uma cor para cada candidato (ex.: o mapa ao lado), o gráfico usa a mesma.
-type Props = { cargos: ResultadoCargo[]; historico: Ponto[]; marcados: Marcados; corDe?: (id: string) => string };
+type Props = { cargos: ResultadoCargo[]; historico: Ponto[]; marcados: Marcados };
 
-export function GraficoEvolucao({ cargos, historico, marcados, corDe }: Props) {
+export function GraficoEvolucao({ cargos, historico, marcados }: Props) {
   const [chave, setChave] = useState<ChaveCargo>('presidente');
   const [metrica, setMetrica] = useState<Metrica>('pct');
   const cargo = cargos.find((c) => c.chave === chave) ?? cargos[0];
@@ -49,20 +48,15 @@ export function GraficoEvolucao({ cargos, historico, marcados, corDe }: Props) {
           Votos
         </button>
       </div>
-      {cargo && <Corpo key={cargo.chave} cargo={cargo} historico={historico} metrica={metrica} marcados={marcados} corDe={corDe} />}
+      {cargo && <Corpo key={cargo.chave} cargo={cargo} historico={historico} metrica={metrica} marcados={marcados} />}
     </section>
   );
 }
 
-type CorpoProps = { cargo: ResultadoCargo; historico: Ponto[]; metrica: Metrica; marcados: Marcados; corDe?: (id: string) => string };
+type CorpoProps = { cargo: ResultadoCargo; historico: Ponto[]; metrica: Metrica; marcados: Marcados };
 
-function Corpo({ cargo, historico, metrica, marcados, corDe }: CorpoProps) {
+function Corpo({ cargo, historico, metrica, marcados }: CorpoProps) {
   const ids = idsDoGrafico(cargo, marcados);
-
-  // A cor acompanha o candidato enquanto ele estiver no gráfico.
-  const [slots, setSlots] = useState<Record<string, number>>({});
-  const novosSlots = atribuirSlots(slots, ids);
-  if (novosSlots !== slots) setSlots(novosSlots);
 
   const caixa = useRef<HTMLDivElement>(null);
   const [largura, setLargura] = useState(0);
@@ -78,7 +72,9 @@ function Corpo({ cargo, historico, metrica, marcados, corDe }: CorpoProps) {
 
   const pontos = historico.filter((p) => p.cargos[cargo.chave]);
   const candidatos = new Map(cargo.candidatos.map((c) => [c.id, c]));
-  const cor = (id: string) => (corDe ? corDe(id) : CORES[novosSlots[id] % CORES.length]);
+  // Cor do partido de cada candidato; partidos repetidos ganham tom mais claro e linha tracejada.
+  const estilos = coresDosCandidatos(ids.map((id) => ({ id, partido: candidatos.get(id)?.partido ?? '' })));
+  const cor = (id: string) => estilos.get(id)?.cor ?? '#a1a1aa';
   const valor = (n: number) => (metrica === 'pct' ? fmtPct(n) : fmtInt(n));
 
   const temGrafico = pontos.length >= 2 && largura > 0;
@@ -147,6 +143,7 @@ function Corpo({ cargo, historico, metrica, marcados, corDe }: CorpoProps) {
                       strokeWidth={2}
                       strokeLinejoin="round"
                       strokeLinecap="round"
+                      strokeDasharray={estilos.get(s.id)?.tracejado}
                     />
                   ))}
                   <circle cx={x(ultimo.t)} cy={y(ultimo.y)} r={4} fill={cor(s.id)} stroke={SUPERFICIE} strokeWidth={2} />

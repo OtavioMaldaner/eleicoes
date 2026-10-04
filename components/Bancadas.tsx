@@ -2,17 +2,14 @@
 
 import { Fragment, useState } from 'react';
 import { vagasPorBancada } from '@/lib/bancadas';
-import { CORES } from '@/lib/cores';
+import { corPartido } from '@/lib/cores';
 import { fmtInt, fmtPct } from '@/lib/formato';
-import { atribuirSlotsComLimite } from '@/lib/historico';
 import type { Marca, Marcados } from '@/lib/marcados';
 import type { ResultadoCargo } from '@/lib/tse/types';
 import { Hemiciclo, type Cadeira } from './Hemiciclo';
 import { LinhaCandidato } from './LinhaCandidato';
 
-const SEM_COR = '#71717a';
 const VAGA_ABERTA = '#3f3f46';
-const SEM_SLOTS: Record<string, number> = {};
 
 type Props = { cargo: ResultadoCargo; marcados: Marcados; alternar: (id: string, m: Marca) => void };
 
@@ -24,15 +21,9 @@ export function Bancadas({ cargo, marcados, alternar }: Props) {
   const totalVotos = bancadas.reduce((s, b) => s + b.votos, 0);
   const comVagas = bancadas.filter((b) => (vagas.get(b.id) ?? 0) > 0).sort((a, b) => vagas.get(b.id)! - vagas.get(a.id)! || b.votos - a.votos);
 
-  // Cor para as bancadas com mais vagas; as demais ficam em cinza.
-  const [slots, setSlots] = useState(SEM_SLOTS);
-  const novosSlots = atribuirSlotsComLimite(
-    slots,
-    comVagas.map((b) => b.id),
-    CORES.length,
-  );
-  if (novosSlots !== slots) setSlots(novosSlots);
-  const cor = (id: string) => (id in novosSlots && novosSlots[id] < CORES.length ? CORES[novosSlots[id]] : SEM_COR);
+  // Cada bancada tem a cor do seu partido (numa federação, a do partido mais conhecido).
+  const nomes = new Map(bancadas.map((b) => [b.id, b.nome]));
+  const cor = (id: string) => corPartido(nomes.get(id) ?? id);
 
   const distribuidas = comVagas.reduce((s, b) => s + vagas.get(b.id)!, 0);
   const cadeiras: Cadeira[] = [

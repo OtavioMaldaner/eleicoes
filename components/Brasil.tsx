@@ -6,9 +6,8 @@ import { comoResultado, entidadeDe, placar, porRegiao, vantagem, type CargoBrasi
 import { CARGOS_BRASIL } from '@/lib/brasil/fetch';
 import { composicao } from '@/lib/brasil/camara';
 import { placarSenado } from '@/lib/brasil/senado';
-import { CORES } from '@/lib/cores';
+import { corPartido } from '@/lib/cores';
 import { fmtInt, fmtPct } from '@/lib/formato';
-import { atribuirSlotsComLimite, idsDoGrafico } from '@/lib/historico';
 import type { Local, VotoCand } from '@/lib/mapas/agregar';
 import { BASE } from '@/lib/tse/config';
 import { useBrasil } from '@/lib/useBrasil';
@@ -27,7 +26,6 @@ const OUTROS = '#71717a';
 const SEM_RESPOSTA = '#78350f';
 const NEUTRO_CLARO = '#e4e4e7';
 const INICIO_APURACAO = Date.parse('2026-10-04T17:00:00-03:00');
-const SEM_SLOTS: Record<string, number> = {};
 const chaveMunicipio = (f: Feature) => String(f.properties?.codarea ?? '');
 
 type Modo = 'lider' | 'vantagem' | 'candidato';
@@ -252,16 +250,10 @@ export function Brasil() {
             .bancadas.filter((b) => b.vagas > 0)
             .map((b) => b.nome)
         : lideres;
-  const [slotsPorCargo, setSlots] = useState<Partial<Record<CargoBrasil, Record<string, number>>>>({});
-  const slots = slotsPorCargo[cargo] ?? SEM_SLOTS;
-  // Em presidente, os candidatos do gráfico entram na mesma tabela de cores do mapa.
-  const doGrafico =
-    cargo === 'presidente' && nacional && nacional.cargos[0].candidatos.some((c) => c.votos > 0) ? idsDoGrafico(nacional.cargos[0], marcados) : [];
-  const novosSlots = atribuirSlotsComLimite(slots, [...new Set([...comCor, ...doGrafico])], CORES.length);
-  if (novosSlots !== slots) setSlots({ ...slotsPorCargo, [cargo]: novosSlots });
-
-  const corEnt = (k: string) => (k in novosSlots && novosSlots[k] < CORES.length ? CORES[novosSlots[k]] : OUTROS);
-  const cor = (v: VotoCand) => corEnt(ent(v));
+  // Cada candidato ou bancada tem a cor do seu partido.
+  const partidoDoCandidato = new Map([...(dados?.nacional ? [dados.nacional] : []), ...estados].flatMap((l) => l.votos).map((v) => [v.id, v.partido]));
+  const corEnt = (k: string) => corPartido(cargo === 'presidente' ? (partidoDoCandidato.get(k) ?? k) : k);
+  const cor = (v: VotoCand) => corPartido(v.partido);
 
   const porUf = new Map(estados.map((l) => [l.chave, l]));
   const semResposta = new Set(dados?.semResposta ?? []);
@@ -290,10 +282,7 @@ export function Brasil() {
   const porMun = new Map((estadoSel.municipios?.municipios ?? []).map((l) => [l.chave, l]));
   const munAtual = munSel ? porMun.get(munSel) : undefined;
   const nomeUf = uf ? (porUf.get(uf)?.nome ?? uf.toUpperCase()) : '';
-  const corPara = (c: CargoBrasil, v: VotoCand) => {
-    const slot = slotsPorCargo[c]?.[entidadeDe(c)(v)];
-    return c === cargo ? cor(v) : slot !== undefined && slot < CORES.length ? CORES[slot] : OUTROS;
-  };
+  const corPara = (_c: CargoBrasil, v: VotoCand) => corPartido(v.partido);
   const rotuloMun = (k: string) => {
     const l = porMun.get(k);
     if (!l) return 'Sem dado deste município';
@@ -394,9 +383,7 @@ export function Brasil() {
             ) : (
               <PainelLocal key={cargo} cargo={cargo} local={local} cor={cor} />
             )}
-            {cargo === 'presidente' && presidente.length > 0 && (
-              <GraficoEvolucao cargos={presidente} historico={historico} marcados={marcados} corDe={doGrafico.length ? corEnt : undefined} />
-            )}
+            {cargo === 'presidente' && presidente.length > 0 && <GraficoEvolucao cargos={presidente} historico={historico} marcados={marcados} />}
           </div>
 
           <section className={`${cartao} order-first xl:order-none`} aria-label="Mapa">
@@ -460,15 +447,13 @@ export function Brasil() {
               </div>
             )}
             <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-300">
-              {Object.keys(novosSlots)
-                .filter((k) => novosSlots[k] < CORES.length)
-                .map((k) => (
-                  <li key={k} className="flex items-center gap-1.5">
-                    <Amostra cor={corEnt(k)} /> {nomeEnt(k)}
-                  </li>
-                ))}
+              {comCor.map((k) => (
+                <li key={k} className="flex items-center gap-1.5">
+                  <Amostra cor={corEnt(k)} /> {nomeEnt(k)}
+                </li>
+              ))}
               <li className="flex items-center gap-1.5">
-                <Amostra cor={OUTROS} /> Empate{Object.keys(novosSlots).length > CORES.length ? ' / outros' : ''}
+                <Amostra cor={OUTROS} /> Empate
               </li>
               <li className="flex items-center gap-1.5">
                 <Amostra cor={SEM_VOTOS} /> Sem votos apurados
@@ -483,7 +468,7 @@ export function Brasil() {
               {modoAtivo === 'lider' && (uf && cargo !== 'depFederal' ? 'Cada município tem a cor de quem lidera. ' : 'Cada estado tem a cor de quem lidera. ')}
               {modoAtivo === 'vantagem' && 'Cor de quem lidera; mais forte quanto maior a distância para o segundo (máximo em 30 pontos). '}
               {modoAtivo === 'candidato' && 'Mais forte quanto maior o percentual do candidato escolhido (máximo em 70%). '}
-              {cargo === 'depFederal' ? 'A cor é da bancada mais votada no estado. ' : cargo !== 'presidente' && 'Nestes cargos a cor é do partido. '}
+              {cargo === 'depFederal' ? 'A cor é a do partido da bancada mais votada no estado. ' : 'A cor é a do partido. '}
               {uf && cargo !== 'depFederal' ? 'Use “‹ Brasil” para voltar ao mapa do país.' : 'Clique num estado para ver os municípios e os três cargos.'}
             </p>
           </section>

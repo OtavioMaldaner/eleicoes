@@ -3,9 +3,8 @@
 import type { Feature } from 'geojson';
 import { useEffect, useState } from 'react';
 import { feature } from 'topojson-client';
-import { CORES } from '@/lib/cores';
+import { corPartido } from '@/lib/cores';
 import { fmtInt, fmtPct } from '@/lib/formato';
-import { atribuirSlotsComLimite } from '@/lib/historico';
 import { somar, type Local } from '@/lib/mapas/agregar';
 import { useMapas } from '@/lib/useMapas';
 import { MapaCoropletico } from './MapaCoropletico';
@@ -153,12 +152,11 @@ export function Exterior() {
   const paises = dados?.paises ?? [];
   const todos = paises;
 
-  // Quem já liderou algum lugar mantém a cor, mesmo que deixe de liderar.
-  const numero = new Map(todos.flatMap((l) => l.votos).map((v) => [v.id, Number(v.numero)]));
-  const lideres = [...new Set(todos.flatMap((l) => (l.lider ? [l.lider] : [])))].sort((a, b) => (numero.get(a) ?? 0) - (numero.get(b) ?? 0));
-  const [slots, setSlots] = useState<Record<string, number>>({});
-  const novosSlots = atribuirSlotsComLimite(slots, lideres, CORES.length);
-  if (novosSlots !== slots) setSlots(novosSlots);
+  // Cada candidato tem a cor do seu partido.
+  const candidatos = new Map(todos.flatMap((l) => l.votos).map((v) => [v.id, v]));
+  const lideres = [...new Set(todos.flatMap((l) => (l.lider ? [l.lider] : [])))].sort(
+    (a, b) => Number(candidatos.get(a)?.numero ?? 0) - Number(candidatos.get(b)?.numero ?? 0),
+  );
 
   if (!dados) {
     return erro ? (
@@ -171,7 +169,7 @@ export function Exterior() {
   }
 
   const porPais = new Map(paises.map((l) => [l.chave, l]));
-  const corDe = (id: string) => (id in novosSlots && novosSlots[id] < CORES.length ? CORES[novosSlots[id]] : OUTROS);
+  const corDe = (id: string) => corPartido(candidatos.get(id)?.partido ?? id);
   const semResposta = new Set(dados.semResposta);
   const corLocal = (l: Local | undefined, chave: string) =>
     !l ? (semResposta.has(chave) ? SEM_RESPOSTA : SEM_SECAO) : l.lider ? corDe(l.lider) : l.empate ? OUTROS : SEM_VOTOS;
@@ -203,19 +201,17 @@ export function Exterior() {
       )}
 
       <ul className="flex flex-wrap gap-x-4 gap-y-1 rounded-lg border border-zinc-800 bg-zinc-900 p-3 text-xs text-zinc-300">
-        {Object.keys(novosSlots)
-          .filter((id) => novosSlots[id] < CORES.length)
-          .map((id) => {
-            const c = nomeDe(id);
-            return (
-              <li key={id} className="flex items-center gap-1.5">
-                <Amostra cor={corDe(id)} />
-                {c?.nome ?? id} <span className="text-zinc-500">{c?.partido}</span>
-              </li>
-            );
-          })}
+        {lideres.map((id) => {
+          const c = nomeDe(id);
+          return (
+            <li key={id} className="flex items-center gap-1.5">
+              <Amostra cor={corDe(id)} />
+              {c?.nome ?? id} <span className="text-zinc-500">{c?.partido}</span>
+            </li>
+          );
+        })}
         <li className="flex items-center gap-1.5">
-          <Amostra cor={OUTROS} /> Empate{lideres.length > CORES.length ? ' / outros' : ''}
+          <Amostra cor={OUTROS} /> Empate
         </li>
         <li className="flex items-center gap-1.5">
           <Amostra cor={SEM_VOTOS} /> Sem votos apurados
