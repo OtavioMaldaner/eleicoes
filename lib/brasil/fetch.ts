@@ -17,15 +17,23 @@ export type Brasil = { cargo: CargoBrasil; nacional: Local | null; estados: Loca
 
 const TEMPO_LIMITE_MS = 8_000;
 
-async function buscarLocal(cargo: CargoBrasil, uf: string, nome: string, init?: RequestInit): Promise<Local | null> {
+// Um arquivo do TSE como `Local`. Com `municipio`, busca o arquivo daquele município e usa `chave` no lugar da sigla.
+export async function buscarLocal(
+  cargo: CargoBrasil,
+  uf: string,
+  nome: string,
+  init?: RequestInit,
+  municipio?: { cd: string; chave: string },
+): Promise<Local | null> {
   const c = CARGOS_BRASIL[cargo];
   const cfg: CargoConfig = { chave: cargo, nome: c.nome, eleicao: c.eleicao, codigo: c.codigo, uf, proporcional: cargo === 'depFederal' };
-  const url = `${BASE}/${c.eleicao}/dados/${uf}/${uf}-c${c.codigo.padStart(4, '0')}-e${c.eleicao.padStart(6, '0')}-u.json`;
+  const url = `${BASE}/${c.eleicao}/dados/${uf}/${uf}${municipio?.cd ?? ''}-c${c.codigo.padStart(4, '0')}-e${c.eleicao.padStart(6, '0')}-u.json`;
   try {
     const r = await fetch(url, { ...init, signal: AbortSignal.timeout(TEMPO_LIMITE_MS) });
     if (!r.ok) return null;
     const resultado = normalizar(cfg, await r.json());
-    return cargo === 'depFederal' ? localCamara(uf, nome, resultado) : localDe(uf, nome, resultado);
+    const chave = municipio?.chave ?? uf;
+    return cargo === 'depFederal' ? localCamara(chave, nome, resultado) : localDe(chave, nome, resultado);
   } catch {
     return null;
   }

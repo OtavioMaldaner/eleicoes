@@ -12,10 +12,13 @@ import { atribuirSlotsComLimite, idsDoGrafico } from '@/lib/historico';
 import type { Local, VotoCand } from '@/lib/mapas/agregar';
 import { BASE } from '@/lib/tse/config';
 import { useBrasil } from '@/lib/useBrasil';
+import { useEstado } from '@/lib/useEstado';
 import { useHistorico } from '@/lib/useHistorico';
 import { useMarcados } from '@/lib/useMarcados';
 import { GraficoEvolucao } from './GraficoEvolucao';
+import { CartaoEstado } from './CartaoEstado';
 import { MapaBrasil, type Pintura } from './MapaBrasil';
+import { MapaCoropletico } from './MapaCoropletico';
 import { PainelCamara } from './PainelCamara';
 import { PainelSenado } from './PainelSenado';
 
@@ -25,6 +28,7 @@ const SEM_RESPOSTA = '#78350f';
 const NEUTRO_CLARO = '#e4e4e7';
 const INICIO_APURACAO = Date.parse('2026-10-04T17:00:00-03:00');
 const SEM_SLOTS: Record<string, number> = {};
+const chaveMunicipio = (f: Feature) => String(f.properties?.codarea ?? '');
 
 type Modo = 'lider' | 'vantagem' | 'candidato';
 const ABAS: { cargo: CargoBrasil; rotulo: string }[] = [
@@ -202,7 +206,13 @@ export function Brasil() {
   const [cargo, setCargo] = useState<CargoBrasil>('presidente');
   const [modo, setModo] = useState<Modo>('lider');
   const [foco, setFoco] = useState<string | null>(null);
-  const [ufEscolhida, setUf] = useState<string | null>(null);
+  const [ufEscolhida, setUfEscolhida] = useState<string | null>(null);
+  const [munSel, setMunSel] = useState<string | null>(null);
+  const setUf = (k: string | null) => {
+    setUfEscolhida(k);
+    setMunSel(null);
+  };
+  const estadoSel = useEstado(ufEscolhida, cargo);
   const { dados, erro, eventos } = useBrasil(cargo);
 
   // Curva de presidente no país, registrada enquanto a aba Presidente está aberta.
@@ -256,14 +266,14 @@ export function Brasil() {
   const porUf = new Map(estados.map((l) => [l.chave, l]));
   const semResposta = new Set(dados?.semResposta ?? []);
   const uf = ufEscolhida;
-  const local = uf ? porUf.get(uf) : (dados?.nacional ?? undefined);
+  const local = dados?.nacional ?? undefined;
   const candidatos = dados?.nacional?.votos ?? [];
   const focoId = foco ?? candidatos[0]?.id ?? null;
   const modoAtivo: Modo = modo === 'candidato' && cargo !== 'presidente' ? 'lider' : modo;
 
-  function pintura(k: string): Pintura {
-    const l = porUf.get(k);
-    if (!l) return { fill: semResposta.has(k) ? SEM_RESPOSTA : SEM_VOTOS, opacidade: 1 };
+  // A mesma regra de cor vale para um estado no mapa do país e para um município no mapa do estado.
+  function pinturaLocal(l: Local | undefined, faltou: boolean): Pintura {
+    if (!l) return { fill: faltou ? SEM_RESPOSTA : SEM_VOTOS, opacidade: 1 };
     if (l.total === 0) return { fill: SEM_VOTOS, opacidade: 1 };
     if (modoAtivo === 'candidato' && focoId) {
       const v = l.votos.find((x) => x.id === focoId);
@@ -274,6 +284,22 @@ export function Brasil() {
     if (!l.lider) return { fill: OUTROS, opacidade: 1 };
     return { fill: cor(l.votos[0]), opacidade: modoAtivo === 'vantagem' ? 0.3 + 0.7 * Math.min(vantagem(l, vagas) / 30, 1) : 1 };
   }
+  const pintura = (k: string) => pinturaLocal(porUf.get(k), semResposta.has(k));
+
+  // Estado selecionado: mapa por município e cartão com os três cargos.
+  const porMun = new Map((estadoSel.municipios?.municipios ?? []).map((l) => [l.chave, l]));
+  const munAtual = munSel ? porMun.get(munSel) : undefined;
+  const nomeUf = uf ? (porUf.get(uf)?.nome ?? uf.toUpperCase()) : '';
+  const corPara = (c: CargoBrasil, v: VotoCand) => {
+    const slot = slotsPorCargo[c]?.[entidadeDe(c)(v)];
+    return c === cargo ? cor(v) : slot !== undefined && slot < CORES.length ? CORES[slot] : OUTROS;
+  };
+  const rotuloMun = (k: string) => {
+    const l = porMun.get(k);
+    if (!l) return 'Sem dado deste município';
+    if (l.total === 0) return `${l.nome}: sem votos apurados`;
+    return l.lider ? `${l.nome}: ${l.votos[0].nome} lidera com ${fmtPct((l.votos[0].votos / l.total) * 100)}` : `${l.nome}: empate`;
+  };
 
   const rotuloUf = (k: string) => {
     const l = porUf.get(k);
@@ -361,12 +387,12 @@ export function Brasil() {
                 onBrasil={uf ? () => setUf(null) : undefined}
                 contagem={<Contagem />}
               />
-            ) : !uf && cargo === 'senador' ? (
+            ) : cargo === 'senador' ? (
               <PainelSenado estados={estados} cor={corEnt} onUf={setUf} contagem={<Contagem />} />
-            ) : !uf && cargo !== 'presidente' ? (
+            ) : cargo !== 'presidente' ? (
               <Placar cargo={cargo} estados={estados} linhas={placar(estados, ent)} cor={corEnt} />
             ) : (
-              <PainelLocal key={`${cargo}-${uf}`} cargo={cargo} local={local} cor={cor} onBrasil={uf ? () => setUf(null) : undefined} />
+              <PainelLocal key={cargo} cargo={cargo} local={local} cor={cor} />
             )}
             {cargo === 'presidente' && presidente.length > 0 && (
               <GraficoEvolucao cargos={presidente} historico={historico} marcados={marcados} corDe={doGrafico.length ? corEnt : undefined} />
@@ -374,9 +400,65 @@ export function Brasil() {
           </div>
 
           <section className={`${cartao} order-first xl:order-none`} aria-label="Mapa">
-            <div className="mx-auto max-w-[760px]">
-              <MapaBrasil features={ufs} pintura={pintura} rotulo={rotuloUf} selecionado={uf} onSelecionar={setUf} />
-            </div>
+            {uf && cargo !== 'depFederal' ? (
+              <div>
+                <div className="mb-2 flex flex-wrap items-center gap-2 text-sm">
+                  <button type="button" onClick={() => setUf(null)} className="rounded-full border border-zinc-700 px-3 py-1 text-zinc-200 hover:bg-zinc-800">
+                    ‹ Brasil
+                  </button>
+                  <span className="font-semibold">{nomeUf}</span>
+                  <span className="text-xs text-zinc-500">por município · atualiza a cada 90s</span>
+                </div>
+                {estadoSel.contornos && estadoSel.municipios ? (
+                  <div className="mx-auto max-w-[760px]">
+                    <MapaCoropletico
+                      titulo={`Mapa de ${nomeUf} por município`}
+                      features={estadoSel.contornos}
+                      chaveDe={chaveMunicipio}
+                      projecao="plana"
+                      proporcao={0.85}
+                      cor={(k) => pinturaLocal(porMun.get(k), true).fill}
+                      opacidade={(k) => pinturaLocal(porMun.get(k), true).opacidade}
+                      rotulo={rotuloMun}
+                      selecionado={munSel}
+                      onSelecionar={setMunSel}
+                    />
+                  </div>
+                ) : (
+                  <p className="py-16 text-center text-sm text-zinc-400">
+                    {estadoSel.erroMunicipios
+                      ? `Não foi possível carregar os municípios (${estadoSel.erroMunicipios}).`
+                      : `Carregando os municípios de ${nomeUf}…`}
+                  </p>
+                )}
+                <p className="mt-2 min-h-10 rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm">
+                  {munAtual ? (
+                    <>
+                      <span className="font-semibold">{munAtual.nome}</span>{' '}
+                      <span className="text-xs text-zinc-400">{fmtPct(munAtual.pctSecoes)} das seções</span>
+                      {munAtual.total > 0 ? (
+                        munAtual.votos.slice(0, 3).map((v) => (
+                          <span key={v.id} className="ml-3 inline-flex items-center gap-1.5 whitespace-nowrap">
+                            <Amostra cor={cor(v)} /> {v.nome} <span className="tabular-nums text-zinc-300">{fmtPct((v.votos / munAtual.total) * 100)}</span>
+                          </span>
+                        ))
+                      ) : (
+                        <span className="ml-3 text-zinc-400">sem votos apurados</span>
+                      )}
+                    </>
+                  ) : (
+                    <span className="text-zinc-500">Passe o mouse ou toque num município para ver os votos.</span>
+                  )}
+                </p>
+                {(estadoSel.municipios?.falhas ?? 0) > 0 && (
+                  <p className="mt-1 text-xs text-amber-300">{estadoSel.municipios!.falhas} municípios não responderam nesta atualização.</p>
+                )}
+              </div>
+            ) : (
+              <div className="mx-auto max-w-[760px]">
+                <MapaBrasil features={ufs} pintura={pintura} rotulo={rotuloUf} selecionado={uf} onSelecionar={setUf} />
+              </div>
+            )}
             <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-300">
               {Object.keys(novosSlots)
                 .filter((k) => novosSlots[k] < CORES.length)
@@ -398,16 +480,17 @@ export function Brasil() {
               )}
             </ul>
             <p className="mt-2 text-xs text-zinc-500">
-              {modoAtivo === 'lider' && 'Cada estado tem a cor de quem lidera. '}
+              {modoAtivo === 'lider' && (uf && cargo !== 'depFederal' ? 'Cada município tem a cor de quem lidera. ' : 'Cada estado tem a cor de quem lidera. ')}
               {modoAtivo === 'vantagem' && 'Cor de quem lidera; mais forte quanto maior a distância para o segundo (máximo em 30 pontos). '}
               {modoAtivo === 'candidato' && 'Mais forte quanto maior o percentual do candidato escolhido (máximo em 70%). '}
               {cargo === 'depFederal' ? 'A cor é da bancada mais votada no estado. ' : cargo !== 'presidente' && 'Nestes cargos a cor é do partido. '}
-              Clique num estado para ver os candidatos.
+              {uf && cargo !== 'depFederal' ? 'Use “‹ Brasil” para voltar ao mapa do país.' : 'Clique num estado para ver os municípios e os três cargos.'}
             </p>
           </section>
 
           <div className="space-y-4">
-            <section className={cartao}>
+            {uf && <CartaoEstado uf={uf} nome={nomeUf} estado={estadoSel.resumo} cor={corPara} onFechar={() => setUf(null)} />}
+            <section className={`${cartao} ${uf ? 'hidden' : ''}`}>
               <h2 className="mb-2 text-base font-semibold">
                 {cargo === 'presidente' ? 'Por região' : cargo === 'depFederal' ? 'Bancada mais votada em cada estado' : 'Quem lidera em cada estado'}
               </h2>

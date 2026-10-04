@@ -13,12 +13,13 @@ type Props = {
   projecao: 'plana' | 'mundo';
   proporcao: number; // altura / largura
   cor: (chave: string) => string;
+  opacidade?: (chave: string) => number;
   rotulo: (chave: string) => string;
   selecionado: string | null;
   onSelecionar: (chave: string) => void;
 };
 
-export function MapaCoropletico({ titulo, features, chaveDe, projecao, proporcao, cor, rotulo, selecionado, onSelecionar }: Props) {
+export function MapaCoropletico({ titulo, features, chaveDe, projecao, proporcao, cor, opacidade, rotulo, selecionado, onSelecionar }: Props) {
   const caixa = useRef<HTMLDivElement>(null);
   const [largura, setLargura] = useState(0);
   useEffect(() => {
@@ -49,6 +50,7 @@ export function MapaCoropletico({ titulo, features, chaveDe, projecao, proporcao
               key={f.id}
               d={f.d}
               fill={cor(f.chave)}
+              fillOpacity={opacidade?.(f.chave) ?? 1}
               stroke={SUPERFICIE}
               strokeWidth={0.75}
               strokeLinejoin="round"
