@@ -51,7 +51,7 @@ Next.js (App Router), TypeScript, Tailwind. Uma página.
 | `lib/tse/types.ts` | Tipos do formato normalizado. |
 | `lib/tse/normalize.ts` | Função pura: JSON cru do TSE → `ResultadoCargo`. Sem I/O. |
 | `lib/tse/fetch.ts` | `buscarResultados()`: busca os cinco arquivos em paralelo e normaliza. Usada pela rota e pelo fallback do cliente. |
-| `app/api/resultados/route.ts` | Chama `buscarResultados()` com cache de 20s. Região `gru1`. |
+| `app/api/resultados/route.ts` | Chama `buscarResultados()` com cache de 10s na CDN, sem servir cópia vencida. Região `gru1`. |
 | `lib/useResultados.ts` | Hook de polling a cada 30s na rota; se a rota falhar, chama `buscarResultados()` direto do navegador. Mantém o último resultado bom. |
 | `lib/useMarcados.ts` | Marcações em `localStorage`. |
 | `components/*` | `ApuracaoGlobal`, `MeusCandidatos`, `CartaoCandidato`, `PainelCargo`, `LinhaCandidato`. |

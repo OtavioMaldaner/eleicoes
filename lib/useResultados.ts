@@ -8,7 +8,7 @@ const INTERVALO_MS = 30_000;
 
 async function buscar(): Promise<Resultados> {
   try {
-    const r = await fetch('/api/resultados', { cache: 'no-store' });
+    const r = await fetch('/api/resultados', { cache: 'no-store', signal: AbortSignal.timeout(12_000) });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     return await r.json();
   } catch {

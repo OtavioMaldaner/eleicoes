@@ -34,6 +34,17 @@ describe('buscarResultados', () => {
     expect(por.depEstadual.erro).toBe('rede caiu');
     expect(typeof r.buscadoEm).toBe('string');
   });
+
+  it('passa um sinal de tempo limite em cada requisição, preservando as opções', async () => {
+    stubFetch();
+    await buscarResultados({ cache: 'no-store' });
+    const chamadas = vi.mocked(fetch).mock.calls;
+    expect(chamadas).toHaveLength(5);
+    for (const [, init] of chamadas) {
+      expect(init?.signal).toBeInstanceOf(AbortSignal);
+      expect(init?.cache).toBe('no-store');
+    }
+  });
 });
 
 describe('mesclar', () => {
@@ -50,6 +61,14 @@ describe('mesclar', () => {
     expect(m.cargos[0].candidatos.length).toBeGreaterThan(1);
     expect(m.cargos[0].erro).toBe('HTTP 500');
     expect(m.cargos[1].candidatos).toEqual([]);
+  });
+
+  it('descarta uma resposta mais antiga que a já exibida', async () => {
+    stubFetch();
+    const r = await buscarResultados();
+    const atual = { ...r, buscadoEm: '2026-10-04T21:00:30.000Z' };
+    const atrasada = { ...r, buscadoEm: '2026-10-04T21:00:00.000Z' };
+    expect(mesclar(atual, atrasada)).toBe(atual);
   });
 
   it('sem anterior, devolve o novo', async () => {

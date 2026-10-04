@@ -2,11 +2,13 @@ import { CARGOS, urlDados } from './config';
 import { normalizar } from './normalize';
 import type { ResultadoCargo, Resultados } from './types';
 
+const TEMPO_LIMITE_MS = 8_000;
+
 export async function buscarResultados(init?: RequestInit): Promise<Resultados> {
   const cargos = await Promise.all(
     CARGOS.map(async (cfg): Promise<ResultadoCargo> => {
       try {
-        const r = await fetch(urlDados(cfg), init);
+        const r = await fetch(urlDados(cfg), { ...init, signal: AbortSignal.timeout(TEMPO_LIMITE_MS) });
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return normalizar(cfg, await r.json());
       } catch (e) {
@@ -26,8 +28,10 @@ export async function buscarResultados(init?: RequestInit): Promise<Resultados> 
 }
 
 // Cargo que falhou neste ciclo mantém o último dado bom, com o erro anotado.
+// Uma resposta mais antiga que a já exibida (ciclos sobrepostos) é descartada.
 export function mesclar(anterior: Resultados | null, novo: Resultados): Resultados {
   if (!anterior) return novo;
+  if (novo.buscadoEm < anterior.buscadoEm) return anterior;
   return {
     ...novo,
     cargos: novo.cargos.map((c) => {
