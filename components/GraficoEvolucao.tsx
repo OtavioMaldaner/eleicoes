@@ -4,11 +4,9 @@ import { useEffect, useRef, useState } from 'react';
 import { atribuirSlots, idsDoGrafico, series, type Metrica, type Ponto } from '@/lib/historico';
 import type { Marcados } from '@/lib/marcados';
 import type { ChaveCargo, ResultadoCargo } from '@/lib/tse/types';
+import { CORES, SUPERFICIE } from '@/lib/cores';
 import { fmtInt, fmtPct } from '@/lib/formato';
 
-// Paleta categórica para fundo escuro, em ordem fixa.
-const CORES = ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#008300', '#9085e9', '#e66767'];
-const SUPERFICIE = '#18181b';
 const ALTURA = 280;
 const M = { topo: 12, direita: 16, base: 24, esquerda: 52 };
 
