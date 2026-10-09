@@ -1,12 +1,12 @@
-import { CARGOS, urlDados } from './config';
+import { cargosDoTurno, urlDados } from './config';
 import { normalizar } from './normalize';
-import type { ResultadoCargo, Resultados } from './types';
+import type { ResultadoCargo, Resultados, Turno } from './types';
 
 const TEMPO_LIMITE_MS = 8_000;
 
-export async function buscarResultados(init?: RequestInit, municipio?: string): Promise<Resultados> {
+export async function buscarResultados(init?: RequestInit, municipio?: string, turno: Turno = 1): Promise<Resultados> {
   const cargos = await Promise.all(
-    CARGOS.map(async (cfg): Promise<ResultadoCargo> => {
+    cargosDoTurno(turno).map(async (cfg): Promise<ResultadoCargo> => {
       try {
         const r = await fetch(urlDados(cfg, municipio), { ...init, signal: AbortSignal.timeout(TEMPO_LIMITE_MS) });
         if (!r.ok) throw new Error(`HTTP ${r.status}`);

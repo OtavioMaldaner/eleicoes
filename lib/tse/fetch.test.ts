@@ -43,6 +43,18 @@ describe('buscarResultados', () => {
     expect(urls.every((u) => u.includes('/dados/rs/rs88013-c'))).toBe(true);
   });
 
+  it('no 2º turno, busca só os cargos majoritários', async () => {
+    stubFetch();
+    const r = await buscarResultados(undefined, '88013', 2);
+    expect(r.cargos.map((c) => c.chave)).toEqual(['presidenteBr', 'presidente', 'governador']);
+    const urls = vi.mocked(fetch).mock.calls.map(([u]) => String(u));
+    expect(urls).toEqual([
+      expect.stringContaining('/6258/dados/br/br-c0001-e006258-u.json'),
+      expect.stringContaining('/6258/dados/rs/rs88013-c0001-e006258-u.json'),
+      expect.stringContaining('/6260/dados/rs/rs88013-c0003-e006260-u.json'),
+    ]);
+  });
+
   it('passa um sinal de tempo limite em cada requisição, preservando as opções', async () => {
     stubFetch();
     await buscarResultados({ cache: 'no-store' });

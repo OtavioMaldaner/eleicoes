@@ -7,6 +7,7 @@ const PAGINAS = [
   { href: '/', rotulo: 'Rio Grande do Sul', curto: 'RS' },
   { href: '/brasil', rotulo: 'Brasil', curto: 'Brasil' },
   { href: '/exterior', rotulo: 'Exterior', curto: 'Exterior' },
+  { href: '/segundo-turno', rotulo: '2º turno', curto: '2º T' },
 ];
 
 export function Cabecalho() {
@@ -21,7 +22,7 @@ export function Cabecalho() {
           </span>
           <span className="leading-tight">
             <span className="block text-base font-bold tracking-tight">Eleições 2026</span>
-            <span className="hidden text-[11px] uppercase tracking-widest text-zinc-400 sm:block">Apuração ao vivo · 1º turno</span>
+            <span className="hidden text-[11px] uppercase tracking-widest text-zinc-400 sm:block">Apuração ao vivo · {atual === '/segundo-turno' ? '2º' : '1º'} turno</span>
           </span>
         </Link>
         <nav aria-label="Páginas" className="ml-auto flex rounded-full border border-zinc-800 bg-zinc-900 p-1">
@@ -32,7 +33,7 @@ export function Cabecalho() {
                 key={p.href}
                 href={p.href}
                 aria-current={ativo ? 'page' : undefined}
-                className={`rounded-full px-3.5 py-1.5 text-sm font-medium sm:px-4 transition-colors ${
+                className={`whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium sm:px-4 transition-colors ${
                   ativo ? 'bg-zinc-100 text-zinc-950' : 'text-zinc-300 hover:bg-zinc-800 hover:text-white'
                 }`}
               >
