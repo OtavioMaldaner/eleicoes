@@ -28,7 +28,7 @@ import { PainelCamara } from './PainelCamara';
 const PRIMEIRO_TURNO_FINAL_MS = 10 * 60_000; // o 1º turno já acabou: basta rever de vez em quando
 
 const pilula = (ativa: boolean) =>
-  `rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${ativa ? 'bg-zinc-100 text-zinc-950' : 'text-zinc-300 hover:bg-zinc-800 hover:text-white'}`;
+  `rounded-full px-3 py-1.5 text-sm font-medium transition-colors sm:px-3.5 ${ativa ? 'bg-zinc-100 text-zinc-950' : 'text-zinc-300 hover:bg-zinc-800 hover:text-white'}`;
 const chaveMunicipio = (f: Feature) => String(f.properties?.codarea ?? '');
 const cartao = 'rounded-2xl border border-zinc-800 bg-zinc-900 p-4';
 const apurado = (l: Local | null | undefined): l is Local => !!l && l.total > 0;
@@ -291,7 +291,8 @@ export function SegundoTurno() {
                     </button>
                     {candidatos2.map((v) => (
                       <button key={v.id} type="button" aria-pressed={foco === v.id} onClick={() => setFoco(v.id)} className={pilula(foco === v.id)}>
-                        {v.nome}
+                        <span className="sm:hidden">{v.nome.split(' ')[0]}</span>
+                        <span className="hidden sm:inline">{v.nome}</span>
                       </button>
                     ))}
                   </div>
@@ -303,7 +304,7 @@ export function SegundoTurno() {
                         if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
                         else document.documentElement.requestFullscreen?.().catch(() => {});
                       }}
-                      className="rounded-full border border-zinc-800 px-3 py-1.5 text-zinc-200 hover:bg-zinc-800"
+                      className="hidden rounded-full border border-zinc-800 px-3 py-1.5 text-zinc-200 hover:bg-zinc-800 sm:block"
                     >
                       Tela cheia
                     </button>
