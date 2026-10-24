@@ -14,6 +14,11 @@ const PAGINAS_1T = [
   { href: '/exterior', rotulo: 'Exterior', curto: 'Exterior' },
 ];
 
+const PAGINAS_2T = [
+  { href: '/segundo-turno', rotulo: 'Brasil', curto: 'Brasil' },
+  { href: '/segundo-turno/exterior', rotulo: 'Exterior', curto: 'Exterior' },
+];
+
 const pilula = (ativo: boolean, extra = '') =>
   `whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${extra} ${
     ativo ? 'bg-zinc-100 text-zinc-950' : 'text-zinc-300 hover:bg-zinc-800 hover:text-white'
@@ -21,7 +26,8 @@ const pilula = (ativo: boolean, extra = '') =>
 
 export function Cabecalho() {
   const atual = usePathname();
-  const segundo = atual === '/segundo-turno';
+  const segundo = atual?.startsWith('/segundo-turno') ?? false;
+  const paginas = segundo ? PAGINAS_2T : PAGINAS_1T;
   return (
     <header className="sticky top-0 z-20 border-b border-zinc-800 bg-zinc-950/85 backdrop-blur">
       <div className="mx-auto flex max-w-[1800px] items-center gap-x-4 px-3 py-2.5 sm:px-4">
@@ -46,21 +52,19 @@ export function Cabecalho() {
           })}
         </nav>
       </div>
-      {!segundo && (
-        <div className="mx-auto max-w-[1800px] px-3 pb-2.5 sm:px-4">
-          <nav aria-label="Páginas do 1º turno" className="inline-flex rounded-full border border-zinc-800 bg-zinc-900 p-1">
-            {PAGINAS_1T.map((p) => {
-              const ativo = atual === p.href;
-              return (
-                <Link key={p.href} href={p.href} aria-current={ativo ? 'page' : undefined} className={pilula(ativo, 'sm:px-4')}>
-                  <span className="sm:hidden">{p.curto}</span>
-                  <span className="hidden sm:inline">{p.rotulo}</span>
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
-      )}
+      <div className="mx-auto max-w-[1800px] px-3 pb-2.5 sm:px-4">
+        <nav aria-label={segundo ? 'Páginas do 2º turno' : 'Páginas do 1º turno'} className="inline-flex rounded-full border border-zinc-800 bg-zinc-900 p-1">
+          {paginas.map((p) => {
+            const ativo = atual === p.href;
+            return (
+              <Link key={p.href} href={p.href} aria-current={ativo ? 'page' : undefined} className={pilula(ativo, 'sm:px-4')}>
+                <span className="sm:hidden">{p.curto}</span>
+                <span className="hidden sm:inline">{p.rotulo}</span>
+              </Link>
+            );
+          })}
+        </nav>
+      </div>
     </header>
   );
 }

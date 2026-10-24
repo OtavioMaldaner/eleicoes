@@ -6,14 +6,14 @@ import { aoVivo } from './aoVivo';
 
 const INTERVALO_MS = 60_000;
 
-async function buscar(): Promise<Mapas> {
+async function buscar(turno: 1 | 2): Promise<Mapas> {
   // Só o servidor consulta o TSE (veja useResultados).
-  const r = await fetch('/api/mapas', { cache: 'no-store', signal: AbortSignal.timeout(20_000) });
+  const r = await fetch(turno === 2 ? '/api/mapas?turno=2' : '/api/mapas', { cache: 'no-store', signal: AbortSignal.timeout(20_000) });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   return await r.json();
 }
 
-export function useMapas() {
+export function useMapas(turno: 1 | 2 = 1) {
   const [dados, setDados] = useState<Mapas | null>(null);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -21,7 +21,7 @@ export function useMapas() {
     let vivo = true;
     async function ciclo() {
       try {
-        const d = await buscar();
+        const d = await buscar(turno);
         if (!vivo) return;
         setDados((a) => mesclarMapas(a, d));
         setErro(null);
@@ -34,7 +34,7 @@ export function useMapas() {
       vivo = false;
       parar();
     };
-  }, []);
+  }, [turno]);
 
   return { dados, erro };
 }

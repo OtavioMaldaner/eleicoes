@@ -4,6 +4,7 @@ import type { Feature } from 'geojson';
 import { useEffect, useState } from 'react';
 import { feature } from 'topojson-client';
 import { corPartido } from '@/lib/cores';
+import { FAIXA_LIDER, intensidade } from '@/lib/degrade';
 import { fmtInt, fmtPct } from '@/lib/formato';
 import { somar, type Local } from '@/lib/mapas/agregar';
 import { useMapas } from '@/lib/useMapas';
@@ -144,8 +145,8 @@ function Tabela({
   );
 }
 
-export function Exterior() {
-  const { dados, erro } = useMapas();
+export function Exterior({ turno = 1 }: { turno?: 1 | 2 }) {
+  const { dados, erro } = useMapas(turno);
   const { geo, erro: erroGeo } = useGeo();
   const [pais, setPais] = useState<string | null>(null);
 
@@ -240,6 +241,12 @@ export function Exterior() {
               projecao="mundo"
               proporcao={0.5}
               cor={(k) => corLocal(porPais.get(k), k)}
+              opacidade={(k) => {
+                // No 2º turno a cor é um degradê: mais forte quanto maior o percentual do líder.
+                const l = porPais.get(k);
+                const lider = l?.votos.find((v) => v.id === l.lider);
+                return turno === 2 && l && lider ? intensidade((lider.votos / l.total) * 100, FAIXA_LIDER) : 1;
+              }}
               rotulo={(k) => rotulo(porPais.get(k), k)}
               selecionado={pais}
               onSelecionar={(k) => porPais.has(k) && setPais(k)}
