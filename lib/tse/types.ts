@@ -1,3 +1,5 @@
+import type { Meta } from './falhas';
+
 export type ChaveCargo = 'presidente' | 'governador' | 'senador' | 'depFederal' | 'depEstadual';
 
 export type CargoConfig = {
@@ -73,4 +75,4 @@ export type ResultadoCargo = {
 };
 
 // desatualizado: o TSE falhou e o servidor devolveu a última cópia boa.
-export type Resultados = { cargos: ResultadoCargo[]; buscadoEm: string; desatualizado?: boolean };
+export type Resultados = { cargos: ResultadoCargo[]; buscadoEm: string; desatualizado?: boolean; meta?: Meta };

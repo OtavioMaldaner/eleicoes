@@ -56,7 +56,7 @@ export function SeletorMunicipio({ valor, onMudar }: Props) {
           }}
           placeholder={atual ? 'Trocar de município…' : 'Ver um município do RS…'}
           autoComplete="off"
-          className="w-full min-w-0 rounded-full border border-zinc-800 bg-zinc-900 px-4 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-emerald-400 focus:outline-none"
+          className="w-full min-w-0 rounded-full border border-zinc-800 bg-zinc-900 px-4 py-2 text-sm text-zinc-100 placeholder:text-zinc-400 focus:border-emerald-400 focus:outline-none"
         />
       </label>
       <datalist id="municipios-rs">

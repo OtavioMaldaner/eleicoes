@@ -58,7 +58,7 @@ describe('normalizar', () => {
 
   it('lê vice, partido e foto', () => {
     const c = normalizar(presCfg, pres()).candidatos.find((c) => c.numero === '22')!;
-    expect(c.nome).toBe('FLAVIO BOLSONARO');
+    expect(c.nome).toBe('Flávio Bolsonaro');
     expect(c.vice).toBe('ALFREDO GASPAR');
     expect(c.partido).toBe('PL');
     expect(c.fotoUrl).toBe('https://resultados.tse.jus.br/oficial/ele2026/6257/fotos/br/280002551544.jpeg');

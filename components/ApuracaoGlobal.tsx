@@ -4,7 +4,7 @@ import type { Apuracao, Municipio, ResultadoCargo } from '@/lib/tse/types';
 import { fmtInt, fmtPct } from '@/lib/formato';
 
 function Bloco({ titulo, a }: { titulo: string; a: Apuracao | null | undefined }) {
-  if (!a) return <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3 text-sm text-zinc-500">{titulo}: sem dados</div>;
+  if (!a) return <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3 text-sm text-zinc-400">{titulo}: sem dados</div>;
   const itens: [string, string][] = [
     ['Comparecimento', `${fmtInt(a.comparecimento)} (${fmtPct(a.pctComparecimento)})`],
     ['Abstenção', `${fmtInt(a.abstencao)} (${fmtPct(a.pctAbstencao)})`],
@@ -34,12 +34,12 @@ function Bloco({ titulo, a }: { titulo: string; a: Apuracao | null | undefined }
       <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs sm:grid-cols-4">
         {itens.map(([k, v]) => (
           <div key={k}>
-            <dt className="text-zinc-500">{k}</dt>
+            <dt className="text-zinc-400">{k}</dt>
             <dd className="tabular-nums">{v}</dd>
           </div>
         ))}
       </dl>
-      <p className="mt-2 text-xs text-zinc-500">TSE: {a.atualizadoEm}</p>
+      <p className="mt-2 text-xs text-zinc-400">TSE: {a.atualizadoEm}</p>
     </div>
   );
 }
@@ -58,7 +58,7 @@ export function ApuracaoGlobal({ cargos, buscadoEm, erro, municipio }: Props) {
         </p>
       )}
       <Bloco titulo={municipio?.nm ?? 'Rio Grande do Sul'} a={a} />
-      <p className="text-xs text-zinc-500">Última busca: {hora} · atualiza a cada 30s</p>
+      <p className="text-xs text-zinc-400">Última busca: {hora} · atualiza a cada 30s</p>
     </section>
   );
 }

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { Trilho } from './Trilho';
 
 // Duas abas principais; o 1º turno tem páginas próprias, o 2º turno é uma tela só.
 const TURNOS = [
@@ -19,9 +20,10 @@ const PAGINAS_2T = [
   { href: '/segundo-turno/exterior', rotulo: 'Exterior', curto: 'Exterior' },
 ];
 
+// O fundo da opção ativa é a pílula de vidro do Trilho, que desliza; aqui só muda a cor do texto.
 const pilula = (ativo: boolean, extra = '') =>
-  `whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${extra} ${
-    ativo ? 'bg-zinc-100 text-zinc-950' : 'text-zinc-300 hover:bg-zinc-800 hover:text-white'
+  `relative z-10 whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${extra} ${
+    ativo ? 'text-white' : 'text-zinc-300 hover:text-white'
   }`;
 
 export function Cabecalho() {
@@ -29,7 +31,7 @@ export function Cabecalho() {
   const segundo = atual?.startsWith('/segundo-turno') ?? false;
   const paginas = segundo ? PAGINAS_2T : PAGINAS_1T;
   return (
-    <header className="sticky top-0 z-20 border-b border-zinc-800 bg-zinc-950/85 backdrop-blur">
+    <header className="glass sticky top-0 z-20 border-b">
       <div className="mx-auto flex max-w-[1800px] items-center gap-x-4 px-3 py-2.5 sm:px-4">
         <Link href="/" className="flex items-center gap-2.5">
           <span className="relative flex h-2.5 w-2.5" aria-hidden="true">
@@ -41,29 +43,29 @@ export function Cabecalho() {
             <span className="hidden text-[11px] uppercase tracking-widest text-zinc-400 sm:block">Apuração ao vivo · {segundo ? '2º' : '1º'} turno</span>
           </span>
         </Link>
-        <nav aria-label="Turno" className="ml-auto flex rounded-full border border-zinc-800 bg-zinc-900 p-1">
-          {TURNOS.map((t) => {
-            const ativo = t.segundo === segundo;
-            return (
-              <Link key={t.href} href={t.href} aria-current={ativo ? 'page' : undefined} className={pilula(ativo, 'sm:px-5')}>
-                {t.rotulo}
-              </Link>
-            );
-          })}
-        </nav>
-      </div>
-      <div className="mx-auto max-w-[1800px] px-3 pb-2.5 sm:px-4">
-        <nav aria-label={segundo ? 'Páginas do 2º turno' : 'Páginas do 1º turno'} className="inline-flex rounded-full border border-zinc-800 bg-zinc-900 p-1">
-          {paginas.map((p) => {
-            const ativo = atual === p.href;
-            return (
-              <Link key={p.href} href={p.href} aria-current={ativo ? 'page' : undefined} className={pilula(ativo, 'sm:px-4')}>
-                <span className="sm:hidden">{p.curto}</span>
-                <span className="hidden sm:inline">{p.rotulo}</span>
-              </Link>
-            );
-          })}
-        </nav>
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+          <Trilho como="nav" aria-label={segundo ? 'Páginas do 2º turno' : 'Páginas do 1º turno'} className="flex">
+            {paginas.map((p) => {
+              const ativo = atual === p.href;
+              return (
+                <Link key={p.href} href={p.href} aria-current={ativo ? 'page' : undefined} className={pilula(ativo, 'sm:px-4')}>
+                  <span className="sm:hidden">{p.curto}</span>
+                  <span className="hidden sm:inline">{p.rotulo}</span>
+                </Link>
+              );
+            })}
+          </Trilho>
+          <Trilho como="nav" aria-label="Turno" className="flex">
+            {TURNOS.map((t) => {
+              const ativo = t.segundo === segundo;
+              return (
+                <Link key={t.href} href={t.href} aria-current={ativo ? 'page' : undefined} className={pilula(ativo, 'sm:px-5')}>
+                  {t.rotulo}
+                </Link>
+              );
+            })}
+          </Trilho>
+        </div>
       </div>
     </header>
   );

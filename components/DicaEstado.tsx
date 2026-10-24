@@ -144,7 +144,7 @@ export function DicaEstado({ uf, nome, sub, escopo = `2t:uf:${uf}`, clique = 'Cl
               <div key={f.id} className="flex flex-col items-center rounded-lg bg-zinc-900 p-2 text-center">
                 <Foto eleicao="6257" pasta="br" id={f.id} cor={cor(f)} tamanho={52} />
                 <p className="mt-1.5 w-full truncate text-xs font-medium">{f.nome}</p>
-                <p className="text-[10px] text-zinc-500">{f.partido}</p>
+                <p className="text-[10px] text-zinc-400">{f.partido}</p>
                 <p className="mt-0.5 text-xl font-bold leading-none tabular-nums">{base && v ? fmtPct(pct(v, base)) : '—'}</p>
                 <p className="mt-0.5 text-xs tabular-nums text-zinc-400">{base && v ? `${fmtInt(v.votos)} votos` : 'sem votos'}</p>
               </div>
@@ -211,7 +211,7 @@ export function DicaEstado({ uf, nome, sub, escopo = `2t:uf:${uf}`, clique = 'Cl
         </div>
       )}
 
-      <p className="text-xs text-zinc-500">{clique}</p>
+      <p className="text-xs text-zinc-400">{clique}</p>
     </div>
   );
 }

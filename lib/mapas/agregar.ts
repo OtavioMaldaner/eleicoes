@@ -1,3 +1,4 @@
+import type { Meta } from '../tse/falhas';
 import type { ResultadoCargo } from '../tse/types';
 
 export type VotoCand = { id: string; numero: string; nome: string; partido: string; votos: number; eleito?: boolean; situacao?: string };
@@ -28,7 +29,7 @@ export type Camara = {
 };
 
 // semResposta: chaves de estados e países sem nenhum dado nesta busca.
-export type Mapas = { estados: Local[]; paises: Local[]; semResposta: string[]; falhas: number; buscadoEm: string };
+export type Mapas = { estados: Local[]; paises: Local[]; semResposta: string[]; falhas: number; buscadoEm: string; desatualizado?: boolean; meta?: Meta };
 
 export function liderDe(votos: { id: string; votos: number }[]): { lider: string | null; empate: boolean } {
   const [primeiro, segundo] = [...votos].sort((a, b) => b.votos - a.votos);

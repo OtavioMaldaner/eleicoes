@@ -8,3 +8,76 @@ body {
   background: #09090b;
   color: #f4f4f5;
 }
+
+/* Liquid glass: só na moldura da interface (header, controles, elementos sobre o mapa).
+   Cartões de dados e números continuam sólidos. */
+:root {
+  --glass-bg: rgba(24, 24, 27, 0.6);
+  --glass-bg-forte: rgba(18, 18, 21, 0.82); /* tooltips: levam números, então ficam mais opacos */
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-blur: 20px;
+  --glass-saturate: 180%;
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  --glass-sombra: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --glass-trilho-bg: rgba(255, 255, 255, 0.05);
+  --glass-pilula-bg: rgba(255, 255, 255, 0.17);
+  --glass-pilula-border: rgba(255, 255, 255, 0.2);
+  --glass-pilula-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  --glass-pilula-sombra: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* Sem backdrop-filter, ou com transparência reduzida: fundo quase sólido. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root {
+    --glass-bg: rgba(24, 24, 27, 0.95);
+    --glass-bg-forte: rgba(18, 18, 21, 0.97);
+    --glass-trilho-bg: #1f1f23;
+    --glass-pilula-bg: #3f3f46;
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --glass-bg: #18181b;
+    --glass-bg-forte: #121215;
+    --glass-trilho-bg: #1f1f23;
+    --glass-pilula-bg: #3f3f46;
+  }
+}
+
+@layer components {
+  .glass {
+    background: var(--glass-bg);
+    border-color: var(--glass-border);
+    border-style: solid;
+    box-shadow: var(--glass-highlight);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  }
+  .glass-forte {
+    background: var(--glass-bg-forte);
+    box-shadow: var(--glass-highlight), var(--glass-sombra);
+  }
+  /* Trilho de um controle segmentado; a pílula selecionada desliza por cima dele. */
+  .glass-trilho {
+    position: relative;
+    background: var(--glass-trilho-bg);
+    border-color: var(--glass-border);
+    border-style: solid;
+    box-shadow: var(--glass-highlight);
+  }
+  .glass-pilula {
+    background: var(--glass-pilula-bg);
+    border: 1px solid var(--glass-pilula-border);
+    box-shadow: var(--glass-pilula-highlight), var(--glass-pilula-sombra);
+    transition:
+      transform 250ms ease-out,
+      width 250ms ease-out,
+      height 250ms ease-out,
+      opacity 150ms ease-out;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .glass-pilula {
+      transition: none;
+    }
+  }
+}

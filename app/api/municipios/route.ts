@@ -1,6 +1,7 @@
 import type { CargoBrasil } from '@/lib/brasil/analise';
 import { buscarMunicipios, ufValida } from '@/lib/brasil/estado';
-import { cdn, responder } from '@/lib/servidor/cache';
+import { cdn, compartilhar, responder } from '@/lib/servidor/cache';
+import { completoMunicipios } from '@/lib/servidor/completo';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -18,9 +19,14 @@ export async function GET(request: Request) {
   if (turno === 2 && cargo === 'senador') return Response.json({ erro: 'Não há 2º turno para senador' }, { status: 400 });
   if (!CARGOS.includes(cargo)) return Response.json({ erro: 'Cargo inválido' }, { status: 400 });
 
-  const dados = await buscarMunicipios(uf, cargo as CargoBrasil, { cache: 'no-store' }, turno);
+  const servida = await compartilhar(
+    `municipios:${uf}:${cargo}:${turno}:${final}`,
+    { ttlMs: final ? 3_600_000 : 90_000, completo: completoMunicipios, ttlFalhaMs: 10_000 },
+    () => buscarMunicipios(uf, cargo as CargoBrasil, { cache: 'no-store' }, turno),
+  );
+  const dados = servida.dados;
   const falhouTudo = dados.municipios.length === 0;
   // São centenas de arquivos por estado: cache mais longo que o do resto do site.
   const cache = dados.falhas ? cdn(20, 0, 600) : final ? cdn(3600, 3600, 86400) : cdn(90, 120);
-  return responder(`municipios:${uf}:${cargo}:${turno}`, dados, { falhouTudo, cache });
+  return responder(servida, { falhouTudo, cache });
 }

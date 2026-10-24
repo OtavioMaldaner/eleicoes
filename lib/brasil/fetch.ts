@@ -1,9 +1,11 @@
 import { localDe, somar, type Local } from '../mapas/agregar';
 import { UFS } from '../mapas/dados';
 import { BASE } from '../tse/config';
+import { consultarTse } from '../tse/consulta';
+import type { Meta } from '../tse/falhas';
 import { normalizar } from '../tse/normalize';
 import type { CargoConfig } from '../tse/types';
-import type { CargoBrasil } from './analise';
+import type { CargoBrasil, EventoComHora } from './analise';
 import { localCamara } from './camara';
 
 export const CARGOS_BRASIL: Record<CargoBrasil, { nome: string; eleicao: string; codigo: string }> = {
@@ -24,7 +26,7 @@ export type Turno = 1 | 2;
 
 const dadosDoCargo = (cargo: CargoBrasil, turno: Turno) => (turno === 2 ? CARGOS_SEGUNDO_TURNO[cargo as CargoSegundoTurno] : CARGOS_BRASIL[cargo]);
 
-export type Brasil = { cargo: CargoBrasil; nacional: Local | null; estados: Local[]; semResposta: string[]; buscadoEm: string; desatualizado?: boolean };
+export type Brasil = { cargo: CargoBrasil; nacional: Local | null; estados: Local[]; semResposta: string[]; buscadoEm: string; desatualizado?: boolean; meta?: Meta; eventos?: EventoComHora[] };
 
 const TEMPO_LIMITE_MS = 8_000;
 
@@ -41,7 +43,7 @@ export async function buscarLocal(
   const cfg: CargoConfig = { chave: cargo, nome: c.nome, eleicao: c.eleicao, codigo: c.codigo, uf, proporcional: cargo === 'depFederal' };
   const url = `${BASE}/${c.eleicao}/dados/${uf}/${uf}${municipio?.cd ?? ''}-c${c.codigo.padStart(4, '0')}-e${c.eleicao.padStart(6, '0')}-u.json`;
   try {
-    const r = await fetch(url, { ...init, signal: AbortSignal.timeout(TEMPO_LIMITE_MS) });
+    const r = await consultarTse(url, { ...init, signal: AbortSignal.timeout(TEMPO_LIMITE_MS) });
     if (!r.ok) return null;
     const resultado = normalizar(cfg, await r.json());
     const chave = municipio?.chave ?? uf;

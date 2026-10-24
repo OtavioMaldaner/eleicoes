@@ -37,7 +37,7 @@ export function PainelCamara({ titulo, locais, cor, onBrasil, contagem, compacto
             Ver Brasil
           </button>
         ) : (
-          <p className="text-xs text-zinc-500">{c.vagas} vagas</p>
+          <p className="text-xs text-zinc-400">{c.vagas} vagas</p>
         )}
       </div>
       {totalVotos === 0 && <div className="mt-2">{contagem}</div>}
@@ -50,7 +50,7 @@ export function PainelCamara({ titulo, locais, cor, onBrasil, contagem, compacto
           </Hemiciclo>
         )}
       </div>
-      <p className="mt-2 text-xs text-zinc-500">
+      <p className="mt-2 text-xs text-zinc-400">
         {totalVotos === 0
           ? 'As cadeiras ganham cor quando houver votos apurados.'
           : c.projecao
@@ -78,16 +78,16 @@ export function PainelCamara({ titulo, locais, cor, onBrasil, contagem, compacto
 
           <details open={!compacto} className="group mt-4 border-t border-zinc-800 pt-3">
             <summary className="cursor-pointer list-none text-sm font-semibold">
-              <span className="mr-1 inline-block text-zinc-500 transition-transform group-open:rotate-90">›</span>
+              <span className="mr-1 inline-block text-zinc-400 transition-transform group-open:rotate-90">›</span>
               Mais votados {onBrasil ? 'do estado' : 'do Brasil'}
             </summary>
             <ol className="mt-1 space-y-1.5 text-sm">
               {c.maisVotados.slice(0, MAIS_VOTADOS).map((v, i) => (
                 <li key={`${v.uf}-${v.id}`} className="flex items-baseline gap-2">
-                  <span className="w-5 shrink-0 text-right text-xs tabular-nums text-zinc-500">{i + 1}</span>
+                  <span className="w-5 shrink-0 text-right text-xs tabular-nums text-zinc-400">{i + 1}</span>
                   <span className="min-w-0 flex-1 truncate">
                     {v.nome}{' '}
-                    <span className="text-xs text-zinc-500">
+                    <span className="text-xs text-zinc-400">
                       {v.partido} · {v.uf.toUpperCase()}
                     </span>
                     {v.eleito && <span className="ml-1.5 text-[10px] font-semibold uppercase text-emerald-300">eleito</span>}
@@ -99,7 +99,7 @@ export function PainelCamara({ titulo, locais, cor, onBrasil, contagem, compacto
           </details>
         </>
       )}
-      {!onBrasil && <p className="mt-4 border-t border-zinc-800 pt-3 text-xs text-zinc-500">Clique num estado no mapa ou na lista para ver a bancada dele.</p>}
+      {!onBrasil && <p className="mt-4 border-t border-zinc-800 pt-3 text-xs text-zinc-400">Clique num estado no mapa ou na lista para ver a bancada dele.</p>}
     </section>
   );
 }

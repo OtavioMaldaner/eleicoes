@@ -45,7 +45,7 @@ export function Bancadas({ cargo, marcados, alternar }: Props) {
         <span className="block text-2xl font-semibold tabular-nums">{eleitos}</span>
         <span className="text-[11px] text-zinc-400">de {cargo.vagas} eleitos</span>
       </Hemiciclo>
-      <p className="mt-2 text-xs text-zinc-500">
+      <p className="mt-2 text-xs text-zinc-400">
         {fonte === 'tse' && 'Vagas informadas pelo TSE.'}
         {fonte === 'projecao' && 'Vagas projetadas por nós pelas maiores médias, sem as cláusulas de desempenho. O TSE ainda não informou as vagas.'}
         {fonte === 'nenhuma' && 'As vagas aparecem quando houver votos apurados.'}
@@ -75,14 +75,14 @@ export function Bancadas({ cargo, marcados, alternar }: Props) {
               </button>
               {aberta === b.id && (
                 <div className="pb-2">
-                  <p className="px-1 text-xs text-zinc-500">
+                  <p className="px-1 text-xs text-zinc-400">
                     {fmtInt(b.votos)} votos ({fmtInt(b.votosNominais)} em candidatos, {fmtInt(b.votosLegenda)} de legenda) · {b.candidatos} candidatos
                   </p>
                   <ul className="mt-1 max-h-80 space-y-1 overflow-y-auto">
                     {daBancada.map((c) => (
                       <Fragment key={c.id}>
                         {n > 0 && c.posicaoBancada === n + 1 && (
-                          <li className="my-1 border-t border-dashed border-zinc-600 pt-1 text-center text-[10px] uppercase tracking-wide text-zinc-500">
+                          <li className="my-1 border-t border-dashed border-zinc-600 pt-1 text-center text-[10px] uppercase tracking-wide text-zinc-400">
                             fora das {n} {n === 1 ? 'vaga' : 'vagas'} da bancada
                           </li>
                         )}
@@ -96,7 +96,7 @@ export function Bancadas({ cargo, marcados, alternar }: Props) {
           );
         })}
       </ul>
-      <p className="mt-2 text-xs text-zinc-500">Percentual dos votos do cargo e número de vagas. ★ marca bancadas com candidatos seus.</p>
+      <p className="mt-2 text-xs text-zinc-400">Percentual dos votos do cargo e número de vagas. ★ marca bancadas com candidatos seus.</p>
     </div>
   );
 }

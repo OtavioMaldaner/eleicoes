@@ -1,4 +1,5 @@
 import { urlFoto } from './config';
+import { nomeBonito } from '../nome';
 import type { Apuracao, Bancada, Candidato, CargoConfig, ResultadoCargo } from './types';
 
 export function num(s: unknown): number {
@@ -43,7 +44,7 @@ export function normalizar(cfg: CargoConfig, bruto: unknown): ResultadoCargo {
         candidatos.push({
           id,
           numero: txt(c.n),
-          nome: txt(c.nmu) || txt(c.nm),
+          nome: nomeBonito(txt(c.nmu) || txt(c.nm)),
           vice: vices.length ? vices.join(' / ') : undefined,
           partido: txt(par.sg),
           votos: num(c.vap),

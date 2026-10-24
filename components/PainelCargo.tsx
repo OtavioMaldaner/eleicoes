@@ -55,7 +55,7 @@ export function PainelCargo({ cargo, marcados, alternar, destacarVaga }: Props) 
         <Bancadas cargo={cargo} marcados={marcados} alternar={alternar} />
       ) : (
         <>
-          {cargo.candidatos.length === 0 && <p className="text-sm text-zinc-500">Sem dados para este cargo.</p>}
+          {cargo.candidatos.length === 0 && <p className="text-sm text-zinc-400">Sem dados para este cargo.</p>}
 
           {cargo.proporcional && expandido && (
             <input
@@ -69,7 +69,7 @@ export function PainelCargo({ cargo, marcados, alternar, destacarVaga }: Props) 
           )}
 
           <ul className={`space-y-1 ${expandido ? 'max-h-[70vh] overflow-y-auto' : ''}`}>{lista.map(linha)}</ul>
-          {expandido && lista.length === 0 && <p className="text-sm text-zinc-500">Nenhum candidato encontrado.</p>}
+          {expandido && lista.length === 0 && <p className="text-sm text-zinc-400">Nenhum candidato encontrado.</p>}
 
           {cargo.proporcional && cargo.candidatos.length > 0 && (
             <button

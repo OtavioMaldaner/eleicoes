@@ -39,7 +39,7 @@ export function AnaliseRegioes({ estados2, estados1, finalistas, cor, onUf }: Pr
     <section className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4" aria-label="Presidente por região">
       <div className="flex items-baseline justify-between gap-2">
         <h2 className="text-xs uppercase tracking-widest text-zinc-400">Por região</h2>
-        {!segundoComVotos && <span className="text-xs text-zinc-500">1º turno, até o 2º ter votos</span>}
+        {!segundoComVotos && <span className="text-xs text-zinc-400">1º turno, até o 2º ter votos</span>}
       </div>
 
       {a && b && (
@@ -70,15 +70,16 @@ export function AnaliseRegioes({ estados2, estados1, finalistas, cor, onUf }: Pr
                 <summary className="cursor-pointer list-none">
                   <div className="flex items-baseline justify-between gap-2 text-sm">
                     <span className="font-medium">
-                      <span className="mr-1 inline-block text-zinc-500 transition-transform group-open:rotate-90">›</span>
+                      <span className="mr-1 inline-block text-zinc-400 transition-transform group-open:rotate-90">›</span>
                       {r.nome}
                     </span>
                     <span className="text-xs tabular-nums text-zinc-400">
-                      {usa2 ? `${fmtPct(l2.pctSecoes)} das seções` : '2º turno sem votos'}
+                      {lider && apurado(l) && `${lider.nome.split(' ')[0]} +${fmtPct(Math.abs(dif))} · `}
+                      {usa2 ? `${fmtPct(l2.pctSecoes)} das seções` : '1º turno'}
                     </span>
                   </div>
                   {a && b && apurado(l) ? (
-                    <>
+                    <div title={lider ? `${lider.nome.split(' ')[0]} +${fmtPct(Math.abs(dif))}${usa2 ? '' : ' (1º turno)'}` : 'empate'}>
                       <div className="mt-1.5 flex items-baseline justify-between text-sm font-semibold tabular-nums">
                         <span style={{ color: cor(a) }}>{fmtPct(pct(va, l))}</span>
                         <span style={{ color: cor(b) }}>{fmtPct(pct(vb, l))}</span>
@@ -88,21 +89,13 @@ export function AnaliseRegioes({ estados2, estados1, finalistas, cor, onUf }: Pr
                         <div className="flex-1" />
                         <div style={{ width: `${pct(vb, l)}%`, background: cor(b) }} />
                       </div>
-                      <p className="mt-1 flex justify-between text-xs text-zinc-400">
-                        <span>
-                          {a.nome.split(' ')[0]} {fmtInt(va)}
-                        </span>
-                        <span className="text-zinc-300">
-                          {lider ? `${lider.nome.split(' ')[0]} +${fmtPct(Math.abs(dif))}` : 'empate'}
-                          {!usa2 && ' (1º turno)'}
-                        </span>
-                        <span>
-                          {b.nome.split(' ')[0]} {fmtInt(vb)}
-                        </span>
+                      <p className="mt-1 flex justify-between gap-3 text-xs tabular-nums text-zinc-300">
+                        <span>{fmtInt(va)} votos</span>
+                        <span>{fmtInt(vb)} votos</span>
                       </p>
-                    </>
+                    </div>
                   ) : (
-                    <p className="mt-1 text-xs text-zinc-500">Sem dados desta região nesta atualização.</p>
+                    <p className="mt-1 text-xs text-zinc-400">Sem dados desta região nesta atualização.</p>
                   )}
                 </summary>
                 <ul className="mt-2 grid grid-cols-2 gap-x-3 gap-y-0.5 text-xs">
@@ -121,7 +114,7 @@ export function AnaliseRegioes({ estados2, estados1, finalistas, cor, onUf }: Pr
                                 <span className="tabular-nums text-zinc-300">{fmtPct(pct(top.votos, eu!))}</span>
                               </>
                             ) : (
-                              <span className="text-zinc-500">sem votos</span>
+                              <span className="text-zinc-400">sem votos</span>
                             )}
                           </button>
                         </li>

@@ -204,7 +204,7 @@ export function MapaBrasil({ features, pintura, rotulo, selecionado, onSeleciona
       {dica && sobre && (
         <div
           role="tooltip"
-          className="pointer-events-none absolute z-10 rounded-xl border border-zinc-700 bg-zinc-950/95 p-3.5 text-sm shadow-2xl backdrop-blur"
+          className="pointer-events-none absolute z-10 glass glass-forte rounded-xl border p-3.5 text-sm"
           style={{
             width: larguraDica,
             top: Math.min(Math.max(sobre.y - 12, 0), Math.max(altura - ALTURA_DICA, 0)),

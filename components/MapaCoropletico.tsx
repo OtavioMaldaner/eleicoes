@@ -17,6 +17,8 @@ type Props = {
   rotulo: (chave: string) => string;
   selecionado: string | null;
   onSelecionar: (chave: string) => void;
+  // Se informado, o mouse só "passa" por cima (e deixa de passar ao sair); o clique e o toque continuam selecionando.
+  onSobre?: (chave: string | null) => void;
   // Resumo ao passar o mouse (ou tocar); sem ele, vale a dica nativa do navegador.
   dica?: (chave: string) => ReactNode;
 };
@@ -24,7 +26,7 @@ type Props = {
 const LARGURA_DICA = 340;
 const ALTURA_DICA = 440; // estimativa, só para a dica não passar da base do mapa
 
-export function MapaCoropletico({ titulo, features, chaveDe, projecao, proporcao, cor, opacidade, rotulo, selecionado, onSelecionar, dica }: Props) {
+export function MapaCoropletico({ titulo, features, chaveDe, projecao, proporcao, cor, opacidade, rotulo, selecionado, onSelecionar, onSobre, dica }: Props) {
   const caixa = useRef<HTMLDivElement>(null);
   const [largura, setLargura] = useState(0);
   const [sobre, setSobre] = useState<{ chave: string; x: number; y: number } | null>(null);
@@ -69,11 +71,15 @@ export function MapaCoropletico({ titulo, features, chaveDe, projecao, proporcao
               strokeLinejoin="round"
               className="cursor-pointer"
               onPointerEnter={(e) => {
-                onSelecionar(f.chave);
+                if (onSobre && e.pointerType === 'mouse') onSobre(f.chave);
+                else onSelecionar(f.chave);
                 passar(f.chave)(e);
               }}
               onPointerMove={passar(f.chave)}
-              onPointerLeave={() => setSobre(null)}
+              onPointerLeave={(e) => {
+                if (onSobre && e.pointerType === 'mouse') onSobre(null);
+                setSobre(null);
+              }}
               onClick={() => onSelecionar(f.chave)}
             >
               {!dica && <title>{rotulo(f.chave)}</title>}
@@ -90,7 +96,7 @@ export function MapaCoropletico({ titulo, features, chaveDe, projecao, proporcao
       {dica && sobre && (
         <div
           role="tooltip"
-          className="pointer-events-none absolute z-10 rounded-xl border border-zinc-700 bg-zinc-950/95 p-3.5 text-sm shadow-2xl backdrop-blur"
+          className="pointer-events-none absolute z-10 glass glass-forte rounded-xl border p-3.5 text-sm"
           style={{
             width: larguraDica,
             top: Math.min(Math.max(sobre.y - 12, 0), Math.max(altura - ALTURA_DICA, 0)),

@@ -1,5 +1,6 @@
 import { CARGOS_SEGUNDO_TURNO, type Turno } from '../brasil/fetch';
 import { BASE, CARGOS } from '../tse/config';
+import { consultarTse } from '../tse/consulta';
 import { normalizar } from '../tse/normalize';
 import { localDe, somar, type Local, type Mapas } from './agregar';
 import { CIDADES_EXTERIOR, UFS } from './dados';
@@ -15,7 +16,7 @@ const urlDe = (turno: Turno) => (uf: string, municipio = '') => {
 
 async function buscarLocal(endereco: string, chave: string, nome: string, init?: RequestInit): Promise<Local | null> {
   try {
-    const r = await fetch(endereco, { ...init, signal: AbortSignal.timeout(TEMPO_LIMITE_MS) });
+    const r = await consultarTse(endereco, { ...init, signal: AbortSignal.timeout(TEMPO_LIMITE_MS) });
     if (!r.ok) return null;
     return localDe(chave, nome, normalizar(PRESIDENTE, await r.json()));
   } catch {

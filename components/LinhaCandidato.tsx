@@ -49,7 +49,7 @@ export function LinhaCandidato({ c, marca, naVaga, onMarcar }: Props) {
     <li className={`rounded border-l-4 px-2 py-1.5 ${borda}`}>
       <div className="flex items-baseline justify-between gap-2">
         <span className="min-w-0 truncate">
-          <span className="mr-1 tabular-nums text-zinc-500">{c.posicao}º</span>
+          <span className="mr-1 tabular-nums text-zinc-400">{c.posicao}º</span>
           <span className={naVaga ? 'font-semibold text-emerald-300' : 'font-medium'}>{c.nome}</span>
           <span className="ml-1 text-xs text-zinc-400">
             {c.partido} · {c.numero}

@@ -17,7 +17,7 @@ export function CartaoProjecao({ projecao, pctSecoes, finalistas, cor }: Props) 
         <span className="rounded-full border border-amber-500/60 bg-amber-950/40 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-200">estimativa</span>
       </div>
       {!liberada ? (
-        <p className="mt-2 text-sm text-zinc-500">
+        <p className="mt-2 text-sm text-zinc-400">
           A projeção aparece quando {SECOES_MINIMAS_PAIS}% das seções estiverem apuradas (agora {fmtPct(pctSecoes)}).
         </p>
       ) : (
@@ -45,7 +45,7 @@ export function CartaoProjecao({ projecao, pctSecoes, finalistas, cor }: Props) 
           </p>
         </>
       )}
-      <p className="mt-2 border-t border-zinc-800 pt-2 text-xs text-zinc-500">
+      <p className="mt-2 border-t border-zinc-800 pt-2 text-xs text-zinc-400">
         Não é resultado oficial. Estima o fim da apuração multiplicando o que já foi contado em cada estado pelo que falta e, onde ainda
         não há contagem suficiente, usa o 1º turno como base. Como a ordem da apuração pode favorecer um lado no começo, a diferença
         pode mudar bastante. O resultado vale o do TSE.

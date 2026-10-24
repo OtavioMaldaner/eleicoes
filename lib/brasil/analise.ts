@@ -29,6 +29,8 @@ export function entidadeDe(cargo: CargoBrasil): (v: VotoCand) => string {
 }
 
 export type Evento = { uf: string; tipo: 'primeiros' | 'virada' | 'marco'; texto: string };
+// `t`: quando o servidor viu a mudança (ms desde 1970).
+export type EventoComHora = Evento & { t: number };
 
 const MARCOS = [100, 90, 50];
 

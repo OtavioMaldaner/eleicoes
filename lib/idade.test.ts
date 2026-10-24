@@ -13,6 +13,10 @@ describe('idadeDosDados', () => {
   it('marca do servidor tira o verde mesmo com dado recente', () => {
     expect(idadeDosDados(base, em(5), true).nivel).toBe('atencao');
   });
+  it('servindo o último dado bom fica âmbar mesmo com o dado muito velho; sem a marca, vira cinza', () => {
+    expect(idadeDosDados(base, em(3600), true).nivel).toBe('atencao');
+    expect(idadeDosDados(base, em(3600)).nivel).toBe('critico');
+  });
   it('data inválida ou no futuro não quebra', () => {
     expect(idadeDosDados('lixo', em(10)).segundos).toBe(0);
     expect(idadeDosDados(base, em(-30)).segundos).toBe(0);

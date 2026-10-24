@@ -57,7 +57,7 @@ export function PainelSenado({ estados, cor, onUf, contagem }: Props) {
     <section className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4" aria-label="Senado no Brasil">
       <div className="flex items-baseline justify-between gap-2">
         <p className="text-xs uppercase tracking-widest text-zinc-400">Senado · Brasil</p>
-        <p className="text-xs text-zinc-500">Duas vagas por estado</p>
+        <p className="text-xs text-zinc-400">Duas vagas por estado</p>
       </div>
       {ocupados.length === 0 && <div className="mt-2">{contagem}</div>}
 
@@ -94,7 +94,7 @@ export function PainelSenado({ estados, cor, onUf, contagem }: Props) {
           Fora da disputa <span className="font-semibold tabular-nums">{VAGAS_FORA_DA_DISPUTA}</span>
         </li>
       </ul>
-      <p className="mt-1 text-xs text-zinc-500">Cor cheia: eleito pelo TSE. Cor clara: está na vaga, ainda em apuração.</p>
+      <p className="mt-1 text-xs text-zinc-400">Cor cheia: eleito pelo TSE. Cor clara: está na vaga, ainda em apuração.</p>
 
       <div className="mt-4 border-t border-zinc-800 pt-3">
         <h2 className="mb-2 text-sm font-semibold">Quem está nas duas vagas de cada estado</h2>
@@ -133,7 +133,7 @@ export function PainelSenado({ estados, cor, onUf, contagem }: Props) {
           <p className="mt-2 text-sm text-zinc-400">Aguardando as primeiras seções.</p>
         ) : (
           <>
-            <p className="text-xs text-zinc-500">Do estado mais apertado ao mais folgado: 2º colocado contra o 3º.</p>
+            <p className="text-xs text-zinc-400">Do estado mais apertado ao mais folgado: 2º colocado contra o 3º.</p>
             <ol className="mt-2 max-h-[420px] space-y-3 overflow-y-auto pr-1">
               {disputas.map((d) => (
                 <li key={d.uf}>
@@ -142,7 +142,7 @@ export function PainelSenado({ estados, cor, onUf, contagem }: Props) {
                     <Foto uf={d.uf} id={d.segundo.id} cor={cor(d.segundo.partido)} />
                     <span className="min-w-0 flex-1 text-xs">
                       <span className="block truncate text-sm">
-                        {d.segundo.nome} <span className="text-zinc-500">{d.segundo.partido}</span>
+                        {d.segundo.nome} <span className="text-zinc-400">{d.segundo.partido}</span>
                       </span>
                       <span className="block truncate text-zinc-400">
                         {fmtPct(d.margem)} à frente de {d.terceiro.nome} ({fmtInt(d.votos)} votos)

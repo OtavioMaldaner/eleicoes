@@ -196,7 +196,7 @@ function Corpo({ cargo, historico, metrica, marcados }: CorpoProps) {
             <li key={id} className="flex items-center gap-1.5">
               <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: cor(id) }} />
               <span>{c.nome}</span>
-              <span className="text-zinc-500">{c.partido}</span>
+              <span className="text-zinc-400">{c.partido}</span>
               <span className="tabular-nums">{valor(metrica === 'pct' ? c.percentual : c.votos)}</span>
             </li>
           );
@@ -206,7 +206,7 @@ function Corpo({ cargo, historico, metrica, marcados }: CorpoProps) {
       <details className="mt-2 text-xs text-zinc-300">
         <summary className="cursor-pointer text-zinc-400">Ver como tabela</summary>
         <table className="mt-2 w-full max-w-xl text-left tabular-nums">
-          <thead className="text-zinc-500">
+          <thead className="text-zinc-400">
             <tr>
               <th className="py-1 font-normal">Candidato</th>
               <th className="font-normal">Partido</th>

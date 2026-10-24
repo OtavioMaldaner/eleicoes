@@ -20,6 +20,7 @@ import { MapaBrasil, type Pintura } from './MapaBrasil';
 import { MapaCoropletico } from './MapaCoropletico';
 import { PainelCamara } from './PainelCamara';
 import { SeloAtualizacao } from './SeloAtualizacao';
+import { Trilho } from './Trilho';
 import { PainelSenado } from './PainelSenado';
 
 const SEM_VOTOS = '#3f3f46';
@@ -38,7 +39,7 @@ const ABAS: { cargo: CargoBrasil; rotulo: string }[] = [
 ];
 
 const pilula = (ativa: boolean) =>
-  `rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${ativa ? 'bg-zinc-100 text-zinc-950' : 'text-zinc-300 hover:bg-zinc-800 hover:text-white'}`;
+  `relative z-10 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${ativa ? 'text-white' : 'text-zinc-300 hover:text-white'}`;
 const cartao = 'rounded-2xl border border-zinc-800 bg-zinc-900 p-4';
 
 function Amostra({ cor }: { cor: string }) {
@@ -193,7 +194,7 @@ function Placar({ cargo, estados, linhas, cor }: PlacarProps) {
           ))}
         </ol>
       )}
-      <p className="mt-4 border-t border-zinc-800 pt-3 text-xs text-zinc-500">
+      <p className="mt-4 border-t border-zinc-800 pt-3 text-xs text-zinc-400">
         {cargo === 'senador' && 'Cada estado elege dois senadores; aqui conta só o mais votado. '}
         Clique num estado no mapa ou na lista para ver os candidatos.
       </p>
@@ -207,9 +208,11 @@ export function Brasil() {
   const [foco, setFoco] = useState<string | null>(null);
   const [ufEscolhida, setUfEscolhida] = useState<string | null>(null);
   const [munSel, setMunSel] = useState<string | null>(null);
+  const [munSobre, setMunSobre] = useState<string | null>(null); // município sob o mouse, só enquanto ele está lá
   const setUf = (k: string | null) => {
     setUfEscolhida(k);
     setMunSel(null);
+    setMunSobre(null);
   };
   const estadoSel = useEstado(ufEscolhida, cargo);
   const { dados, erro, eventos } = useBrasil(cargo);
@@ -281,7 +284,7 @@ export function Brasil() {
 
   // Estado selecionado: mapa por município e cartão com os três cargos.
   const porMun = new Map((estadoSel.municipios?.municipios ?? []).map((l) => [l.chave, l]));
-  const munAtual = munSel ? porMun.get(munSel) : undefined;
+  const munAtual = munSobre ?? munSel ? porMun.get((munSobre ?? munSel)!) : undefined;
   const nomeUf = uf ? (porUf.get(uf)?.nome ?? uf.toUpperCase()) : '';
   const corPara = (_c: CargoBrasil, v: VotoCand) => corPartido(v.partido);
   const rotuloMun = (k: string) => {
@@ -308,14 +311,14 @@ export function Brasil() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <div className="flex rounded-full border border-zinc-800 bg-zinc-900 p-1" role="group" aria-label="Cargo">
+        <Trilho className="flex" role="group" aria-label="Cargo">
           {ABAS.map((a) => (
             <button key={a.cargo} type="button" aria-pressed={cargo === a.cargo} onClick={() => setCargo(a.cargo)} className={pilula(cargo === a.cargo)}>
               {a.rotulo}
             </button>
           ))}
-        </div>
-        <div className="flex flex-wrap items-center gap-1 rounded-full border border-zinc-800 bg-zinc-900 p-1" role="group" aria-label="Cor do mapa">
+        </Trilho>
+        <Trilho className="flex flex-wrap items-center gap-1" role="group" aria-label="Cor do mapa">
           <button type="button" aria-pressed={modoAtivo === 'lider'} onClick={() => setModo('lider')} className={pilula(modoAtivo === 'lider')}>
             Líder
           </button>
@@ -327,7 +330,7 @@ export function Brasil() {
               Candidato
             </button>
           )}
-        </div>
+        </Trilho>
         {modoAtivo === 'candidato' && (
           <select
             value={focoId ?? ''}
@@ -343,7 +346,7 @@ export function Brasil() {
           </select>
         )}
         <div className="ml-auto flex flex-wrap items-center gap-3 text-sm text-zinc-400">
-          {dados && <SeloAtualizacao buscadoEm={dados.buscadoEm} desatualizado={dados.desatualizado} />}
+          {dados && <SeloAtualizacao buscadoEm={dados.buscadoEm} desatualizado={dados.desatualizado} meta={dados.meta} />}
           <button
             type="button"
             onClick={() => {
@@ -351,7 +354,7 @@ export function Brasil() {
               if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
               else document.documentElement.requestFullscreen?.().catch(() => {});
             }}
-            className="rounded-full border border-zinc-800 px-3 py-1.5 text-zinc-200 hover:bg-zinc-800"
+            className="glass glass-forte rounded-full border px-3 py-1.5 text-zinc-100 hover:bg-white/10"
           >
             Tela cheia
           </button>
@@ -394,7 +397,7 @@ export function Brasil() {
                     ‹ Brasil
                   </button>
                   <span className="font-semibold">{nomeUf}</span>
-                  <span className="text-xs text-zinc-500">por município · atualiza a cada 90s</span>
+                  <span className="text-xs text-zinc-400">por município · atualiza a cada 90s</span>
                 </div>
                 {estadoSel.contornos && estadoSel.municipios ? (
                   <div className="mx-auto max-w-[760px]">
@@ -407,8 +410,9 @@ export function Brasil() {
                       cor={(k) => pinturaLocal(porMun.get(k), true).fill}
                       opacidade={(k) => pinturaLocal(porMun.get(k), true).opacidade}
                       rotulo={rotuloMun}
-                      selecionado={munSel}
+                      selecionado={munSobre ?? munSel}
                       onSelecionar={setMunSel}
+                      onSobre={setMunSobre}
                     />
                   </div>
                 ) : (
@@ -434,7 +438,7 @@ export function Brasil() {
                       )}
                     </>
                   ) : (
-                    <span className="text-zinc-500">Passe o mouse ou toque num município para ver os votos.</span>
+                    <span className="text-zinc-400">Passe o mouse ou toque num município para ver os votos.</span>
                   )}
                 </p>
                 {(estadoSel.municipios?.falhas ?? 0) > 0 && (
@@ -464,7 +468,7 @@ export function Brasil() {
                 </li>
               )}
             </ul>
-            <p className="mt-2 text-xs text-zinc-500">
+            <p className="mt-2 text-xs text-zinc-400">
               {modoAtivo === 'lider' && (uf && cargo !== 'depFederal' ? 'Cada município tem a cor de quem lidera. ' : 'Cada estado tem a cor de quem lidera. ')}
               {modoAtivo === 'vantagem' && 'Cor de quem lidera; mais forte quanto maior a distância para o segundo (máximo em 30 pontos). '}
               {modoAtivo === 'candidato' && 'Mais forte quanto maior o percentual do candidato escolhido (máximo em 70%). '}
@@ -520,12 +524,12 @@ export function Brasil() {
                               <Amostra cor={cor(l.votos[0])} />
                               <span className="min-w-0 flex-1 truncate">
                                 {l.votos[0].nome}{' '}
-                                {l.votos[0].partido !== l.votos[0].nome && <span className="text-xs text-zinc-500">{l.votos[0].partido}</span>}
+                                {l.votos[0].partido !== l.votos[0].nome && <span className="text-xs text-zinc-400">{l.votos[0].partido}</span>}
                               </span>
                               <span className="tabular-nums">{fmtPct((l.votos[0].votos / l.total) * 100)}</span>
                             </>
                           ) : (
-                            <span className="flex-1 text-zinc-500">{l.empate ? 'Empate' : 'Sem votos apurados'}</span>
+                            <span className="flex-1 text-zinc-400">{l.empate ? 'Empate' : 'Sem votos apurados'}</span>
                           )}
                         </button>
                       </li>
@@ -542,7 +546,7 @@ export function Brasil() {
                 <ol className="space-y-2 text-sm">
                   {eventos.map((e, i) => (
                     <li key={`${e.t}-${e.uf}-${e.tipo}-${i}`} className="flex gap-2">
-                      <span className="shrink-0 text-xs tabular-nums text-zinc-500">
+                      <span className="shrink-0 text-xs tabular-nums text-zinc-400">
                         {new Date(e.t).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                       </span>
                       <span>{e.texto}</span>

@@ -1,12 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { eventos, type CargoBrasil, type Evento } from './brasil/analise';
+import type { CargoBrasil, EventoComHora } from './brasil/analise';
 import { mesclarBrasil, type Brasil, type Turno } from './brasil/fetch';
 import { aoVivo } from './aoVivo';
 
 const INTERVALO_MS = 30_000;
-const MAX_EVENTOS = 30;
 
 // `final`: o 1º turno já terminou, então o servidor guarda a resposta por bastante tempo.
 async function buscar(cargo: CargoBrasil, turno: Turno, final: boolean): Promise<Brasil> {
@@ -19,7 +18,7 @@ async function buscar(cargo: CargoBrasil, turno: Turno, final: boolean): Promise
   return await r.json();
 }
 
-export type EventoComHora = Evento & { t: number };
+export type { EventoComHora };
 type Estado = { chave: string; cargo: CargoBrasil; dados: Brasil | null; erro: string | null; eventos: EventoComHora[] };
 
 export function useBrasil(cargo: CargoBrasil, turno: Turno = 1, intervaloMs = INTERVALO_MS, final = false) {
@@ -36,9 +35,8 @@ export function useBrasil(cargo: CargoBrasil, turno: Turno = 1, intervaloMs = IN
           const mesmo = a.chave === chave;
           const anterior = mesmo ? a.dados : null;
           if (anterior && d.buscadoEm < anterior.buscadoEm) return a; // resposta atrasada
-          const dados = mesclarBrasil(anterior, d);
-          const novos = anterior ? eventos(anterior.estados, dados.estados, cargo === 'senador' ? 2 : 1).map((e) => ({ ...e, t: Date.now() })) : [];
-          return { chave, cargo, dados, erro: null, eventos: [...novos, ...(mesmo ? a.eventos : [])].slice(0, MAX_EVENTOS) };
+          // As últimas atualizações vêm prontas do servidor, iguais para todos os visitantes.
+          return { chave, cargo, dados: mesclarBrasil(anterior, d), erro: null, eventos: d.eventos ?? [] };
         });
       } catch (e) {
         if (!vivo) return;

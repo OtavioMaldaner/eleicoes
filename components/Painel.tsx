@@ -33,7 +33,7 @@ export function Painel() {
       ) : (
         <>
           <p className="text-sm">
-            <SeloAtualizacao buscadoEm={dados.buscadoEm} desatualizado={dados.desatualizado} />
+            <SeloAtualizacao buscadoEm={dados.buscadoEm} desatualizado={dados.desatualizado} meta={dados.meta} />
           </p>
           <ApuracaoGlobal
             cargos={dados.cargos}

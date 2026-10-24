@@ -4,11 +4,12 @@ const ATENCAO_S = 90;
 const CRITICO_S = 300;
 
 // Há quanto tempo os dados foram buscados no TSE. `desatualizado` é a marca do servidor quando o
-// TSE falhou e ele devolveu a última cópia boa: nesse caso nunca fica no verde.
+// TSE falhou e ele devolveu a última cópia boa: fica âmbar, por mais antigo que seja o dado, porque o
+// site está funcionando e só o TSE está instável. Cinza (crítico) é dado velho sem essa marca: parado.
 export function idadeDosDados(buscadoEm: string, agora: number, desatualizado = false): { segundos: number; nivel: NivelIdade } {
   const t = Date.parse(buscadoEm);
   const segundos = Number.isFinite(t) ? Math.max(Math.round((agora - t) / 1000), 0) : 0;
-  const nivel: NivelIdade = segundos >= CRITICO_S ? 'critico' : segundos >= ATENCAO_S || desatualizado ? 'atencao' : 'ok';
+  const nivel: NivelIdade = desatualizado ? 'atencao' : segundos >= CRITICO_S ? 'critico' : segundos >= ATENCAO_S ? 'atencao' : 'ok';
   return { segundos, nivel };
 }
 

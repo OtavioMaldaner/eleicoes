@@ -93,7 +93,16 @@ export function Duelo({
       </div>
       <p className="mt-1.5 flex justify-between text-xs text-zinc-400">
         <span>{rotuloVantagem}</span>
-        <span className="tabular-nums text-zinc-200">{fmtInt(a.votos - b.votos)} votos</span>
+        {a.votos === b.votos ? (
+          <span className="text-zinc-200">empate</span>
+        ) : (
+          <span className="tabular-nums text-zinc-200">
+            <span className="font-semibold" style={{ color: cor(cargo, a.votos > b.votos ? a : b) }}>
+              {(a.votos > b.votos ? a : b).nome.split(' ')[0]}
+            </span>{' '}
+            +{fmtInt(Math.abs(a.votos - b.votos))} votos
+          </span>
+        )}
       </p>
     </div>
   );
@@ -104,12 +113,12 @@ function Secao({ titulo, l, children }: { titulo: string; l: Local | null; child
     <div className="border-t border-zinc-800 pt-3">
       <div className="mb-2 flex items-baseline justify-between gap-2">
         <h3 className="text-xs uppercase tracking-widest text-zinc-400">{titulo}</h3>
-        {l && l.total > 0 && <span className="text-xs tabular-nums text-zinc-500">{fmtPct(l.pctSecoes)} das seções</span>}
+        {l && l.total > 0 && <span className="text-xs tabular-nums text-zinc-400">{fmtPct(l.pctSecoes)} das seções</span>}
       </div>
       {!l ? (
-        <p className="text-sm text-zinc-500">Sem resposta do TSE nesta atualização.</p>
+        <p className="text-sm text-zinc-400">Sem resposta do TSE nesta atualização.</p>
       ) : l.total === 0 ? (
-        <p className="text-sm text-zinc-500">Ainda sem votos apurados.</p>
+        <p className="text-sm text-zinc-400">Ainda sem votos apurados.</p>
       ) : (
         children(l)
       )}
@@ -166,7 +175,7 @@ export function CartaoEstado({ uf, nome, estado, cor, onFechar }: Props) {
                   </ol>
                 )}
                 {l.votos[2] && l.votos[2].votos > 0 && (
-                  <p className="mt-2 text-xs text-zinc-500">
+                  <p className="mt-2 text-xs text-zinc-400">
                     3º: {l.votos[2].nome} ({l.votos[2].partido}) {fmtPct(pct(l.votos[2], l))}
                   </p>
                 )}
@@ -182,7 +191,7 @@ export function CartaoEstado({ uf, nome, estado, cor, onFechar }: Props) {
                 </ol>
                 {l.votos[1] && l.votos[2] && l.votos[1].votos > 0 && (
                   <div className="mt-3">
-                    <p className="mb-1.5 text-xs text-zinc-500">2ª vaga</p>
+                    <p className="mb-1.5 text-xs text-zinc-400">2ª vaga</p>
                     <Duelo cargo="senador" uf={uf} a={l.votos[1]} b={l.votos[2]} l={l} cor={cor} rotuloVantagem="Vantagem na 2ª vaga" />
                   </div>
                 )}

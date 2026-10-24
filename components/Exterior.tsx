@@ -66,7 +66,7 @@ function Detalhe({ local, vazio, corDe }: { local: Local | undefined; vazio: str
               <li key={v.id} className="flex items-center gap-2">
                 <Amostra cor={corDe(v.id)} />
                 <span className="truncate">{v.nome}</span>
-                <span className="text-xs text-zinc-500">{v.partido}</span>
+                <span className="text-xs text-zinc-400">{v.partido}</span>
                 <span className="ml-auto tabular-nums">
                   {fmtInt(v.votos)} · {fmtPct((v.votos / local.total) * 100)}
                 </span>
@@ -75,7 +75,7 @@ function Detalhe({ local, vazio, corDe }: { local: Local | undefined; vazio: str
         </ol>
       )}
       {local.empate && <p className="mt-2 text-xs text-zinc-400">Empate entre os dois primeiros.</p>}
-      {local.cidades && <p className="mt-2 text-xs text-zinc-500">Cidades somadas: {local.cidades.join(', ')}</p>}
+      {local.cidades && <p className="mt-2 text-xs text-zinc-400">Cidades somadas: {local.cidades.join(', ')}</p>}
       {local.cidadesFaltando && <p className="mt-1 text-xs text-amber-300">Soma incompleta: sem resposta de {local.cidadesFaltando.join(', ')}.</p>}
     </div>
   );
@@ -102,7 +102,7 @@ function Tabela({
       </summary>
       <div className="mt-2 max-h-80 overflow-y-auto">
         <table className="w-full text-left tabular-nums">
-          <thead className="text-zinc-500">
+          <thead className="text-zinc-400">
             <tr>
               <th className="py-1 font-normal">Local</th>
               <th className="font-normal">Lidera</th>
@@ -240,7 +240,7 @@ export function Exterior({ turno = 1 }: { turno?: 1 | 2 }) {
           return (
             <li key={id} className="flex items-center gap-1.5">
               <Amostra cor={corDe(id)} />
-              {c?.nome ?? id} <span className="text-zinc-500">{c?.partido}</span>
+              {c?.nome ?? id} <span className="text-zinc-400">{c?.partido}</span>
             </li>
           );
         })}
@@ -258,7 +258,7 @@ export function Exterior({ turno = 1 }: { turno?: 1 | 2 }) {
             <Amostra cor={SEM_RESPOSTA} /> Sem resposta do TSE
           </li>
         )}
-        <li className="ml-auto text-zinc-500">Última busca: {hora} · atualiza a cada 60s</li>
+        <li className="ml-auto text-zinc-400">Última busca: {hora} · atualiza a cada 60s</li>
       </ul>
 
       <section aria-labelledby="mapa-mundo" className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">

@@ -20,6 +20,8 @@ import { useMarcados } from '@/lib/useMarcados';
 import { BASE } from '@/lib/tse/config';
 import { Duelo, Linha } from './CartaoEstado';
 import { AnaliseRegioes } from './AnaliseRegioes';
+import { BuscaCidade } from './BuscaCidade';
+import { Trilho } from './Trilho';
 import { DicaEstado } from './DicaEstado';
 import { SeloAtualizacao } from './SeloAtualizacao';
 import { UltimasAtualizacoes } from './UltimasAtualizacoes';
@@ -32,7 +34,7 @@ import { CartaoProjecao } from './CartaoProjecao';
 const PRIMEIRO_TURNO_FINAL_MS = 10 * 60_000; // o 1º turno já acabou: basta rever de vez em quando
 
 const pilula = (ativa: boolean) =>
-  `rounded-full px-3 py-1.5 text-sm font-medium transition-colors sm:px-3.5 ${ativa ? 'bg-zinc-100 text-zinc-950' : 'text-zinc-300 hover:bg-zinc-800 hover:text-white'}`;
+  `relative z-10 rounded-full px-3 py-1.5 text-sm font-medium transition-colors sm:px-3.5 ${ativa ? 'text-white' : 'text-zinc-300 hover:text-white'}`;
 const chaveMunicipio = (f: Feature) => String(f.properties?.codarea ?? '');
 const VARIACAO = '__variacao';
 const cartao = 'rounded-2xl border border-zinc-800 bg-zinc-900 p-4';
@@ -63,14 +65,14 @@ function Secao({ titulo, direita, children }: { titulo: string; direita?: string
     <div className="border-t border-zinc-800 pt-3">
       <div className="mb-2 flex items-baseline justify-between gap-2">
         <h3 className="text-xs uppercase tracking-widest text-zinc-400">{titulo}</h3>
-        {direita && <span className="text-xs tabular-nums text-zinc-500">{direita}</span>}
+        {direita && <span className="text-xs tabular-nums text-zinc-400">{direita}</span>}
       </div>
       {children}
     </div>
   );
 }
 
-const Aviso = ({ children }: { children: React.ReactNode }) => <p className="text-sm text-zinc-500">{children}</p>;
+const Aviso = ({ children }: { children: React.ReactNode }) => <p className="text-sm text-zinc-400">{children}</p>;
 
 // Disputa entre os dois primeiros, ou só a lista enquanto não há segundo colocado com votos.
 function Disputa({ cargo, uf, l }: { cargo: 'presidente' | 'governador'; uf: string; l: Local }) {
@@ -175,12 +177,19 @@ export function SegundoTurno() {
   const governadores = useBrasil('governador', 2);
   const detalhe = useEstadoSegundoTurno(uf);
   const [munSel, setMunSel] = useState<string | null>(null);
+  const [munSobre, setMunSobre] = useState<string | null>(null); // município sob o mouse, só enquanto ele está lá
   // no degradê: candidato escolhido, ou quem lidera (null); ou a variação em relação ao 1º turno
   const [foco, setFoco] = useState<string | null>(null);
   const emVariacao = foco === VARIACAO;
   const escolher = (k: string | null) => {
     setUfNaUrl(k);
     setMunSel(null);
+    setMunSobre(null);
+  };
+  // Abre o estado da cidade e já seleciona o município, para o resumo de votos aparecer sob o mapa.
+  const irParaCidade = (c: { uf: string; ibge: string }) => {
+    setUfNaUrl(c.uf);
+    setMunSel(c.ibge);
   };
   const { marcados } = useMarcados();
 
@@ -261,9 +270,10 @@ export function SegundoTurno() {
     const l1 = porMun1.get(k);
     return descreve(l2, l1, (l2 ?? l1)?.nome ?? 'Município');
   };
-  const munAtual = munSel ? (porMun2.get(munSel) ?? porMun1.get(munSel)) : undefined;
-  const munApurado = munSel ? porMun2.get(munSel) : undefined;
-  const lMun = apurado(munApurado) ? munApurado : munSel ? porMun1.get(munSel) : undefined;
+  const munFoco = munSobre ?? munSel;
+  const munAtual = munFoco ? (porMun2.get(munFoco) ?? porMun1.get(munFoco)) : undefined;
+  const munApurado = munFoco ? porMun2.get(munFoco) : undefined;
+  const lMun = apurado(munApurado) ? munApurado : munFoco ? porMun1.get(munFoco) : undefined;
 
   const candidatos2 = (nac2 ?? nac1)?.votos.slice(0, 2) ?? [];
   const erro = presidente2.erro && !presidente2.dados ? presidente2.erro : null;
@@ -293,8 +303,11 @@ export function SegundoTurno() {
           <div className="grid items-start gap-4 xl:grid-cols-[320px_minmax(0,1fr)_380px]">
             <div className="order-1 xl:sticky xl:top-16 xl:order-2">
               <section className={cartao} aria-label="Mapa">
+                <div className="mb-3">
+                  <BuscaCidade onEscolher={irParaCidade} />
+                </div>
                 <div className="mb-3 flex flex-wrap items-center gap-2">
-                  <div className="flex flex-wrap rounded-full border border-zinc-800 bg-zinc-950 p-1" role="group" aria-label="Candidato do degradê">
+                  <Trilho className="flex flex-wrap" role="group" aria-label="Candidato do degradê">
                     <button type="button" aria-pressed={foco === null} onClick={() => setFoco(null)} className={pilula(foco === null)}>
                       Quem lidera
                     </button>
@@ -308,16 +321,16 @@ export function SegundoTurno() {
                       <span className="sm:hidden">Variação</span>
                       <span className="hidden sm:inline">Variação vs 1º turno</span>
                     </button>
-                  </div>
+                  </Trilho>
                   <span className="ml-auto flex flex-wrap items-center gap-3 text-sm text-zinc-400">
-                    <SeloAtualizacao prefixo="Presidente · 2º turno · " buscadoEm={presidente2.dados.buscadoEm} desatualizado={presidente2.dados.desatualizado} />
+                    <SeloAtualizacao prefixo="Presidente · 2º turno · " buscadoEm={presidente2.dados.buscadoEm} desatualizado={presidente2.dados.desatualizado} meta={presidente2.dados.meta} />
                     <button
                       type="button"
                       onClick={() => {
                         if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
                         else document.documentElement.requestFullscreen?.().catch(() => {});
                       }}
-                      className="hidden rounded-full border border-zinc-800 px-3 py-1.5 text-zinc-200 hover:bg-zinc-800 sm:block"
+                      className="glass glass-forte hidden rounded-full border px-3 py-1.5 text-zinc-100 hover:bg-white/10 sm:block"
                     >
                       Tela cheia
                     </button>
@@ -347,30 +360,9 @@ export function SegundoTurno() {
                         ‹ Brasil
                       </button>
                       <span className="font-semibold">{nomeUf(uf)}</span>
-                      <span className="text-xs text-zinc-500">por município · atualiza a cada 90s</span>
+                      <span className="text-xs text-zinc-400">por município · atualiza a cada 90s</span>
                     </div>
-                    {detalhe.contornos && (detalhe.municipios2 || detalhe.municipios1) ? (
-                      <div className="mx-auto w-full max-w-[min(900px,calc(100vh-15rem))]">
-                        <MapaCoropletico
-                          titulo={`Mapa de ${nomeUf(uf)} por município`}
-                          features={detalhe.contornos}
-                          chaveDe={chaveMunicipio}
-                          projecao="plana"
-                          proporcao={0.85}
-                          cor={(k) => pinturaMun(k).fill}
-                          opacidade={(k) => pinturaMun(k).opacidade}
-                          rotulo={rotuloMun}
-                          selecionado={munSel}
-                          onSelecionar={setMunSel}
-                          dica={dicaMun}
-                        />
-                      </div>
-                    ) : (
-                      <p className="py-16 text-center text-sm text-zinc-400">
-                        {detalhe.erroMunicipios ? `Não foi possível carregar os municípios (${detalhe.erroMunicipios}).` : `Carregando os municípios de ${nomeUf(uf)}…`}
-                      </p>
-                    )}
-                    <p className="mt-2 min-h-10 rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm" aria-live="polite">
+                    <p className="mb-2 min-h-10 rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm" aria-live="polite">
                       {munAtual ? (
                         <>
                           <span className="font-semibold">{munAtual.nome}</span>{' '}
@@ -388,9 +380,31 @@ export function SegundoTurno() {
                           )}
                         </>
                       ) : (
-                        <span className="text-zinc-500">Passe o mouse ou toque num município para ver os votos.</span>
+                        <span className="text-zinc-400">Passe o mouse ou toque num município para ver os votos.</span>
                       )}
                     </p>
+                    {detalhe.contornos && (detalhe.municipios2 || detalhe.municipios1) ? (
+                      <div className="mx-auto w-full max-w-[min(900px,calc(100vh-15rem))]">
+                        <MapaCoropletico
+                          titulo={`Mapa de ${nomeUf(uf)} por município`}
+                          features={detalhe.contornos}
+                          chaveDe={chaveMunicipio}
+                          projecao="plana"
+                          proporcao={0.85}
+                          cor={(k) => pinturaMun(k).fill}
+                          opacidade={(k) => pinturaMun(k).opacidade}
+                          rotulo={rotuloMun}
+                          selecionado={munSobre ?? munSel}
+                          onSelecionar={setMunSel}
+                          onSobre={setMunSobre}
+                          dica={dicaMun}
+                        />
+                      </div>
+                    ) : (
+                      <p className="py-16 text-center text-sm text-zinc-400">
+                        {detalhe.erroMunicipios ? `Não foi possível carregar os municípios (${detalhe.erroMunicipios}).` : `Carregando os municípios de ${nomeUf(uf)}…`}
+                      </p>
+                    )}
                     {(detalhe.municipios2?.falhas ?? 0) > 0 && (
                       <p className="mt-1 text-xs text-amber-300">{detalhe.municipios2!.falhas} municípios não responderam nesta atualização.</p>
                     )}
@@ -400,7 +414,7 @@ export function SegundoTurno() {
                     <MapaBrasil features={contornos} pintura={pintura} rotulo={rotulo} selecionado={uf} onSelecionar={escolher} dica={dicaEstado} />
                   </div>
                 )}
-                <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-300">
+                <ul className="glass mt-3 flex flex-wrap gap-x-4 gap-y-1 rounded-xl border px-3 py-2 text-xs text-zinc-200">
                   {candidatos2.map((v) => (
                     <li key={v.id} className="flex items-center gap-1.5">
                       <Amostra cor={cor(v)} /> {v.nome} ({v.partido})
@@ -432,7 +446,11 @@ export function SegundoTurno() {
                     <Amostra cor={SEM_VOTOS} /> Sem votos apurados
                   </li>
                 </ul>
-                <p className="mt-2 text-xs text-zinc-500">
+                <details className="group mt-2 text-xs text-zinc-300">
+                  <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 rounded-full border border-zinc-700 px-2.5 py-1 hover:bg-zinc-800">
+                    <span aria-hidden="true" className="font-semibold">?</span> Como ler o mapa
+                  </summary>
+                  <p className="mt-2 leading-relaxed">
                   {emVariacao
                     ? 'A cor é a de quem mais subiu em relação ao 1º turno (em pontos percentuais dos votos); quanto mais forte, maior a subida. Fica cinza onde o 2º turno ainda não tem votos. '
                     : foco
@@ -440,7 +458,8 @@ export function SegundoTurno() {
                       : 'A cor é a de quem lidera; quanto mais forte, maior o percentual do líder no local. '}
                   {semVotos2 && !emVariacao && 'Enquanto o 2º turno não tem votos, o degradê usa os percentuais do 1º turno. '}
                   Enquanto não há votos, aparece em tom suave o líder do 1º turno. Clique num estado para ver as cidades, o presidente, o governador, o senado e os deputados.
-                </p>
+                                  </p>
+                </details>
               </section>
             </div>
             <div className="contents xl:order-1 xl:flex xl:flex-col xl:gap-4">
@@ -448,7 +467,7 @@ export function SegundoTurno() {
             <section className={cartao} aria-label="Presidente no Brasil, 2º turno">
               <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                 <p className="text-xs uppercase tracking-widest text-zinc-400">Presidente · Brasil · 2º turno</p>
-                {nac2 && (
+                {nac2 && !semVotos2 && (
                   <p className="text-sm text-zinc-300">
                     <span className="text-xl font-semibold tabular-nums text-zinc-100">{fmtPct(nac2.pctSecoes)}</span> das seções
                   </p>
@@ -456,38 +475,46 @@ export function SegundoTurno() {
               </div>
               {nac2 ? (
                 <>
-                  <div className="mt-1.5 h-1.5 overflow-hidden rounded bg-zinc-800">
-                    <div className="h-full rounded bg-emerald-400" style={{ width: `${Math.min(nac2.pctSecoes, 100)}%` }} />
-                  </div>
-                  {nac2.total > 0 && (
-                    <div className="mt-3">
-                      <Disputa cargo="presidente" uf="br" l={nac2} />
-                    </div>
+                  {semVotos2 ? (
+                    <p className="mt-1 text-sm text-zinc-300">Apuração ainda não começou.</p>
+                  ) : (
+                    <>
+                      <div className="mt-1.5 h-1.5 overflow-hidden rounded bg-zinc-800">
+                        <div className="h-full rounded bg-emerald-400" style={{ width: `${Math.min(nac2.pctSecoes, 100)}%` }} />
+                      </div>
+                      <div className="mt-3">
+                        <Disputa cargo="presidente" uf="br" l={nac2} />
+                      </div>
+                      <dl className="mt-3 space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <dt className="text-zinc-400">Seções</dt>
+                          <dd className="tabular-nums">
+                            {fmtInt(nac2.secoesTotalizadas)} de {fmtInt(nac2.secoes)}
+                          </dd>
+                        </div>
+                        <div className="flex justify-between">
+                          <dt className="text-zinc-400">Estados com votos</dt>
+                          <dd className="tabular-nums">{estadosApurados} de 27</dd>
+                        </div>
+                      </dl>
+                    </>
                   )}
-                  <dl className="mt-3 space-y-1 text-sm">
-                    <div className="flex justify-between">
-                      <dt className="text-zinc-400">Seções</dt>
-                      <dd className="tabular-nums">
-                        {fmtInt(nac2.secoesTotalizadas)} de {fmtInt(nac2.secoes)}
-                      </dd>
-                    </div>
-                    <div className="flex justify-between">
-                      <dt className="text-zinc-400">Estados com votos</dt>
-                      <dd className="tabular-nums">{estadosApurados} de 27</dd>
-                    </div>
-                  </dl>
                 </>
               ) : (
                 <p className="mt-2 text-sm text-zinc-400">Sem dados nacionais nesta atualização.</p>
               )}
               {apurado(nac1) && (
-                <div className="mt-3 border-t border-zinc-800 pt-3">
-                  <h3 className="mb-2 text-xs uppercase tracking-widest text-zinc-400">Como terminou o 1º turno</h3>
-                  <ol className="space-y-2">
-                    {nac1.votos.slice(0, 2).map((v) => (
-                      <Linha key={v.id} cargo="presidente" uf="br" v={v} l={nac1} cor={corDe} />
-                    ))}
-                  </ol>
+                <div className={semVotos2 ? 'mt-3' : 'mt-3 border-t border-zinc-800 pt-3'}>
+                  <h3 className={semVotos2 ? 'mb-3 text-base font-semibold text-zinc-100' : 'mb-2 text-xs uppercase tracking-widest text-zinc-400'}>Como terminou o 1º turno</h3>
+                  {semVotos2 ? (
+                    <Duelo cargo="presidente" uf="br" a={nac1.votos[0]} b={nac1.votos[1]} l={nac1} cor={corDe} rotuloVantagem="Vantagem" />
+                  ) : (
+                    <ol className="space-y-2">
+                      {nac1.votos.slice(0, 2).map((v) => (
+                        <Linha key={v.id} cargo="presidente" uf="br" v={v} l={nac1} cor={corDe} />
+                      ))}
+                    </ol>
+                  )}
                 </div>
               )}
             </section>
@@ -497,7 +524,7 @@ export function SegundoTurno() {
               <section className={cartao} aria-label="Governadores no 2º turno">
                 <h2 className="text-xs uppercase tracking-widest text-zinc-400">Governadores · 2º turno</h2>
                 {governadores2.length === 0 ? (
-                  <p className="mt-2 text-sm text-zinc-500">
+                  <p className="mt-2 text-sm text-zinc-400">
                     {governadores.dados ? 'Nenhum estado com 2º turno para governador.' : 'Buscando os estados com 2º turno para governador…'}
                   </p>
                 ) : (
@@ -513,15 +540,14 @@ export function SegundoTurno() {
                           >
                             <span className="flex items-baseline justify-between gap-2">
                               <span className="font-semibold">{l.nome}</span>
-                              <span className="text-xs tabular-nums text-zinc-500">{fmtPct(l.pctSecoes)} das seções</span>
+                              <span className="text-xs tabular-nums text-zinc-400">{fmtPct(l.pctSecoes)} das seções</span>
                             </span>
                             {[a, b].map(
                               (v) =>
                                 v && (
                                   <span key={v.id} className="flex items-center gap-2">
-                                    <Amostra cor={cor(v)} />
-                                    <span className="min-w-0 flex-1 truncate">
-                                      {v.nome} <span className="text-xs text-zinc-500">{v.partido}</span>
+                                    <span className="min-w-0 flex-1 truncate" title={v.nome}>
+                                      {v.nome} <span className="text-xs font-medium text-zinc-300">{v.partido}</span>
                                       {foiEleito(v) && <span className="ml-1.5 text-[10px] font-semibold uppercase text-emerald-300">eleito</span>}
                                     </span>
                                     <span className="tabular-nums">{fmtPct(pct(v, l))}</span>
@@ -551,7 +577,7 @@ export function SegundoTurno() {
               </div>
             )}
             </div>
-            <div className="contents xl:order-3 xl:flex xl:flex-col xl:gap-4">
+            <div className="contents xl:sticky xl:top-16 xl:order-3 xl:flex xl:flex-col xl:gap-4 xl:self-start">
             <div className="order-3 space-y-4">
             {uf ? (
               <>
