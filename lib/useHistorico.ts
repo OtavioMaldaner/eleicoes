@@ -25,7 +25,7 @@ function obter(escopo: string): Ponto[] {
   return h;
 }
 
-function adicionar(escopo: string, ponto: Ponto) {
+export function adicionar(escopo: string, ponto: Ponto) {
   if (semApuracao(ponto)) return;
   const atual = obter(escopo);
   const novo = registrar(atual, ponto);
@@ -55,4 +55,10 @@ export function useHistorico(escopo: string, dados: Resultados | null, marcados:
   }, [escopo, dados, marcados]);
 
   return historico;
+}
+
+// Histórico já registrado de uma abrangência, para quem só quer desenhar (não registra nada).
+export function useHistoricoLido(escopo: string): Ponto[] {
+  const ler = useCallback(() => obter(escopo), [escopo]);
+  return useSyncExternalStore(assinar, ler, () => VAZIO);
 }

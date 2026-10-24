@@ -38,7 +38,8 @@ type Props = {
   dica?: (uf: string) => ReactNode;
 };
 
-const LARGURA_DICA = 330;
+const LARGURA_DICA = 340;
+const ALTURA_DICA = 520; // estimativa, só para a dica não passar da base do mapa
 
 export function MapaBrasil({ features, pintura, rotulo, selecionado, onSelecionar, dica }: Props) {
   const caixa = useRef<HTMLDivElement>(null);
@@ -183,10 +184,10 @@ export function MapaBrasil({ features, pintura, rotulo, selecionado, onSeleciona
       {dica && sobre && (
         <div
           role="tooltip"
-          className="pointer-events-none absolute z-10 rounded-lg border border-zinc-700 bg-zinc-950/95 p-3 text-sm shadow-xl"
+          className="pointer-events-none absolute z-10 rounded-xl border border-zinc-700 bg-zinc-950/95 p-3.5 text-sm shadow-2xl backdrop-blur"
           style={{
             width: LARGURA_DICA,
-            top: Math.max(sobre.y - 12, 0),
+            top: Math.min(Math.max(sobre.y - 12, 0), Math.max(altura - ALTURA_DICA, 0)),
             left: sobre.x + 16 + LARGURA_DICA > largura ? Math.max(sobre.x - 16 - LARGURA_DICA, 0) : sobre.x + 16,
           }}
         >

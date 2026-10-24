@@ -9,9 +9,11 @@ import { fmtInt, fmtPct } from '@/lib/formato';
 import type { Local, VotoCand } from '@/lib/mapas/agregar';
 import { useBrasil } from '@/lib/useBrasil';
 import { useEstadoSegundoTurno } from '@/lib/useEstado';
-import { useHistorico } from '@/lib/useHistorico';
+import { adicionar, useHistorico } from '@/lib/useHistorico';
+import { criarPonto } from '@/lib/historico';
 import { useMarcados } from '@/lib/useMarcados';
 import { Duelo, Linha } from './CartaoEstado';
+import { DicaEstado } from './DicaEstado';
 import { GraficoEvolucao } from './GraficoEvolucao';
 import { MapaBrasil, type Pintura } from './MapaBrasil';
 import { MapaCoropletico } from './MapaCoropletico';
@@ -169,6 +171,14 @@ export function SegundoTurno() {
   );
   const historico = useHistorico('2t:brasil', nacional, marcados);
 
+  // Curva de cada estado, registrada a cada atualização com votos (alimenta o resumo ao passar o mouse).
+  useEffect(() => {
+    const d = presidente2.dados;
+    if (!d) return;
+    const agora = Date.now();
+    for (const l of d.estados) adicionar(`2t:uf:${l.chave}`, criarPonto({ cargos: [comoResultado(l)], buscadoEm: d.buscadoEm }, marcados, agora));
+  }, [presidente2.dados, marcados]);
+
   const [contornos, setContornos] = useState<Feature[]>([]);
   useEffect(() => {
     let vivo = true;
@@ -212,52 +222,9 @@ export function SegundoTurno() {
   const pintura = (k: string) => pinturaDe(por2.get(k), por1.get(k));
   const governador2 = new Map(governadores2.map((l) => [l.chave, l]));
 
-  // Resumo do estado ao passar o mouse: o que já está nos dados do mapa, sem nova consulta.
-  function dicaEstado(k: string) {
-    const l2 = por2.get(k);
-    const l1 = por1.get(k);
-    const gov = governador2.get(k);
-    const dois = (l: Local) =>
-      l.votos.slice(0, 2).map((v) => (
-        <p key={v.id} className="flex items-center gap-2">
-          <Amostra cor={cor(v)} />
-          <span className="min-w-0 flex-1 truncate">{v.nome}</span>
-          <span className="tabular-nums">{fmtPct(pct(v, l))}</span>
-          <span className="w-20 text-right text-xs tabular-nums text-zinc-400">{fmtInt(v.votos)}</span>
-        </p>
-      ));
-    return (
-      <div className="space-y-2">
-        <p className="flex items-baseline justify-between gap-2">
-          <span className="font-semibold">{nomeUf(k)}</span>
-          {(l2 ?? l1) && <span className="text-xs text-zinc-400">{fmtInt((l2 ?? l1)!.eleitorado ?? 0)} eleitores</span>}
-        </p>
-        <div>
-          <p className="mb-0.5 flex justify-between text-[11px] uppercase tracking-wider text-zinc-400">
-            <span>Presidente · 2º turno</span>
-            {apurado(l2) && <span className="tabular-nums normal-case">{fmtPct(l2.pctSecoes)} das seções</span>}
-          </p>
-          {apurado(l2) ? dois(l2) : <p className="text-zinc-500">Ainda sem votos apurados</p>}
-        </div>
-        {apurado(l1) && (
-          <div>
-            <p className="mb-0.5 text-[11px] uppercase tracking-wider text-zinc-400">Presidente · 1º turno</p>
-            {dois(l1)}
-          </div>
-        )}
-        {gov && (
-          <div>
-            <p className="mb-0.5 flex justify-between text-[11px] uppercase tracking-wider text-zinc-400">
-              <span>Governador · 2º turno</span>
-              {apurado(gov) && <span className="tabular-nums normal-case">{fmtPct(gov.pctSecoes)} das seções</span>}
-            </p>
-            {apurado(gov) ? dois(gov) : <p className="text-zinc-500">Ainda sem votos apurados</p>}
-          </div>
-        )}
-        <p className="border-t border-zinc-800 pt-1.5 text-xs text-zinc-500">Clique para ver as cidades, o senado e os deputados.</p>
-      </div>
-    );
-  }
+  const dicaEstado = (k: string) => (
+    <DicaEstado uf={k} nome={nomeUf(k)} l2={por2.get(k)} l1={por1.get(k)} gov={governador2.get(k)} finalistas={candidatos2} cor={cor} />
+  );
   const rotulo = (k: string) => descreve(por2.get(k), por1.get(k), nomeUf(k));
   const pinturaMun = (k: string) => pinturaDe(porMun2.get(k), porMun1.get(k));
   const rotuloMun = (k: string) => {
