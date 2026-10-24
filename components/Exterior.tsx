@@ -8,6 +8,10 @@ import { FAIXA_LIDER, intensidade } from '@/lib/degrade';
 import { fmtInt, fmtPct } from '@/lib/formato';
 import { somar, type Local } from '@/lib/mapas/agregar';
 import { useMapas } from '@/lib/useMapas';
+import { comoResultado } from '@/lib/brasil/analise';
+import { criarPonto } from '@/lib/historico';
+import { adicionar } from '@/lib/useHistorico';
+import { DicaEstado } from './DicaEstado';
 import { MapaCoropletico } from './MapaCoropletico';
 
 const SEM_SECAO = '#232326';
@@ -153,6 +157,13 @@ export function Exterior({ turno = 1 }: { turno?: 1 | 2 }) {
   const paises = dados?.paises ?? [];
   const todos = paises;
 
+  // Curva de cada país no 2º turno, só em memória, para o resumo ao passar o mouse.
+  useEffect(() => {
+    if (turno !== 2 || !dados) return;
+    const agora = Date.now();
+    for (const l of dados.paises) adicionar(`2t:pais:${l.chave}`, criarPonto({ cargos: [comoResultado(l)], buscadoEm: dados.buscadoEm }, {}, agora), false);
+  }, [turno, dados]);
+
   // Cada candidato tem a cor do seu partido.
   const candidatos = new Map(todos.flatMap((l) => l.votos).map((v) => [v.id, v]));
   const lideres = [...new Set(todos.flatMap((l) => (l.lider ? [l.lider] : [])))].sort(
@@ -181,6 +192,28 @@ export function Exterior({ turno = 1 }: { turno?: 1 | 2 }) {
     return lider ? `${l.nome}: ${lider.nome} lidera` : `${l.nome}: ${l.empate ? 'empate' : 'sem votos apurados'}`;
   };
   const hora = new Date(dados.buscadoEm).toLocaleTimeString('pt-BR');
+
+  // Os dois do 2º turno: os mais votados no exterior (ou, sem votos, os que o TSE lista).
+  const finalistas = [...candidatos.values()]
+    .map((v) => ({ ...v, votos: todos.reduce((s, l) => s + (l.votos.find((x) => x.id === v.id)?.votos ?? 0), 0) }))
+    .sort((a, b) => b.votos - a.votos || Number(a.numero) - Number(b.numero))
+    .slice(0, 2);
+  const dicaPais = (k: string) => {
+    const l = porPais.get(k);
+    if (!l) return <p className="text-sm text-zinc-400">{rotulo(undefined, k)}</p>;
+    return (
+      <DicaEstado
+        uf=""
+        nome={l.nome}
+        escopo={`2t:pais:${l.chave}`}
+        clique="Clique para fixar o país e ver as cidades somadas."
+        l2={l}
+        l1={undefined}
+        finalistas={finalistas}
+        cor={(v) => corDe(v.id)}
+      />
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -250,6 +283,7 @@ export function Exterior({ turno = 1 }: { turno?: 1 | 2 }) {
               rotulo={(k) => rotulo(porPais.get(k), k)}
               selecionado={pais}
               onSelecionar={(k) => porPais.has(k) && setPais(k)}
+              dica={turno === 2 ? dicaPais : undefined}
             />
           )}
           <div className="space-y-3">
