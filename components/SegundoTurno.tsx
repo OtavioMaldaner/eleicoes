@@ -152,7 +152,6 @@ export function SegundoTurno() {
   const governadores = useBrasil('governador', 2);
   const detalhe = useEstadoSegundoTurno(uf);
   const [munSel, setMunSel] = useState<string | null>(null);
-  const [modo, setModo] = useState<'lider' | 'degrade'>('lider');
   const [foco, setFoco] = useState<string | null>(null); // no degradê: candidato escolhido, ou quem lidera
   const escolher = (k: string | null) => {
     setUf(k);
@@ -191,7 +190,7 @@ export function SegundoTurno() {
   function pinturaDe(l2: Local | undefined, l1: Local | undefined): Pintura {
     // Sem votos no 2º turno, o degradê usa os percentuais do 1º turno para já mostrar onde cada um é forte.
     const base = apurado(l2) ? l2 : apurado(l1) ? l1 : undefined;
-    if (base && modo === 'degrade') {
+    if (base) {
       const alvo = foco ? candidatos2.find((c) => c.id === foco) : undefined;
       if (alvo) {
         const v = base.votos.find((x) => x.id === alvo.id);
@@ -360,26 +359,16 @@ export function SegundoTurno() {
 
           <section className={`${cartao} order-first xl:order-none`} aria-label="Mapa">
             <div className="mb-3 flex flex-wrap items-center gap-2">
-              <div className="flex rounded-full border border-zinc-800 bg-zinc-950 p-1" role="group" aria-label="Cor do mapa">
-                <button type="button" aria-pressed={modo === 'lider'} onClick={() => setModo('lider')} className={pilula(modo === 'lider')}>
-                  Líder
+              <div className="flex flex-wrap rounded-full border border-zinc-800 bg-zinc-950 p-1" role="group" aria-label="Candidato do degradê">
+                <button type="button" aria-pressed={foco === null} onClick={() => setFoco(null)} className={pilula(foco === null)}>
+                  Quem lidera
                 </button>
-                <button type="button" aria-pressed={modo === 'degrade'} onClick={() => setModo('degrade')} className={pilula(modo === 'degrade')}>
-                  Degradê
-                </button>
-              </div>
-              {modo === 'degrade' && (
-                <div className="flex flex-wrap rounded-full border border-zinc-800 bg-zinc-950 p-1" role="group" aria-label="Candidato do degradê">
-                  <button type="button" aria-pressed={foco === null} onClick={() => setFoco(null)} className={pilula(foco === null)}>
-                    Quem lidera
+                {candidatos2.map((v) => (
+                  <button key={v.id} type="button" aria-pressed={foco === v.id} onClick={() => setFoco(v.id)} className={pilula(foco === v.id)}>
+                    {v.nome}
                   </button>
-                  {candidatos2.map((v) => (
-                    <button key={v.id} type="button" aria-pressed={foco === v.id} onClick={() => setFoco(v.id)} className={pilula(foco === v.id)}>
-                      {v.nome}
-                    </button>
-                  ))}
-                </div>
-              )}
+                ))}
+              </div>
             </div>
             {uf ? (
               <div>
@@ -446,26 +435,24 @@ export function SegundoTurno() {
                   <Amostra cor={cor(v)} /> {v.nome} ({v.partido})
                 </li>
               ))}
-              {modo === 'degrade' && (
-                <li className="flex basis-full flex-wrap items-center gap-x-4 gap-y-1">
-                  {(foco ? candidatos2.filter((v) => v.id === foco) : candidatos2).map((v) => {
-                    const [de, ate] = foco ? FAIXA_CANDIDATO : semVotos2 ? FAIXA_LIDER_1T : FAIXA_LIDER;
-                    return (
-                      <span key={v.id} className="flex items-center gap-1.5">
-                        <span className="tabular-nums text-zinc-400">{de}%</span>
-                        <span
-                          className="h-2.5 w-24 rounded"
-                          style={{ background: `linear-gradient(to right, ${cor(v)}1f, ${cor(v)})` }}
-                          role="img"
-                          aria-label={`Escala de ${v.nome}: de ${de}% a ${ate}% dos votos`}
-                        />
-                        <span className="tabular-nums text-zinc-400">{ate}%</span>
-                        <span className="text-zinc-300">{v.nome}</span>
-                      </span>
-                    );
-                  })}
-                </li>
-              )}
+              <li className="flex basis-full flex-wrap items-center gap-x-4 gap-y-1">
+                {(foco ? candidatos2.filter((v) => v.id === foco) : candidatos2).map((v) => {
+                  const [de, ate] = foco ? FAIXA_CANDIDATO : semVotos2 ? FAIXA_LIDER_1T : FAIXA_LIDER;
+                  return (
+                    <span key={v.id} className="flex items-center gap-1.5">
+                      <span className="tabular-nums text-zinc-400">{de}%</span>
+                      <span
+                        className="h-2.5 w-24 rounded"
+                        style={{ background: `linear-gradient(to right, ${cor(v)}1f, ${cor(v)})` }}
+                        role="img"
+                        aria-label={`Escala de ${v.nome}: de ${de}% a ${ate}% dos votos`}
+                      />
+                      <span className="tabular-nums text-zinc-400">{ate}%</span>
+                      <span className="text-zinc-300">{v.nome}</span>
+                    </span>
+                  );
+                })}
+              </li>
               <li className="flex items-center gap-1.5">
                 <Amostra cor={EMPATE} /> Empate
               </li>
@@ -474,12 +461,10 @@ export function SegundoTurno() {
               </li>
             </ul>
             <p className="mt-2 text-xs text-zinc-500">
-              {modo === 'lider'
-                ? 'Cada estado (e, ao abrir um estado, cada município) tem a cor de quem lidera o 2º turno. '
-                : foco
-                  ? 'Quanto mais forte a cor, maior o percentual do candidato escolhido no local. '
-                  : 'A cor é a de quem lidera; quanto mais forte, maior o percentual do líder no local. '}
-              {modo === 'degrade' && semVotos2 && 'Enquanto o 2º turno não tem votos, o degradê usa os percentuais do 1º turno. '}
+              {foco
+                ? 'Quanto mais forte a cor, maior o percentual do candidato escolhido no local. '
+                : 'A cor é a de quem lidera; quanto mais forte, maior o percentual do líder no local. '}
+              {semVotos2 && 'Enquanto o 2º turno não tem votos, o degradê usa os percentuais do 1º turno. '}
               Enquanto não há votos, aparece em tom suave o líder do 1º turno. Clique num estado para ver as cidades, o presidente, o governador, o senado e os deputados.
             </p>
           </section>
