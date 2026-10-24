@@ -13,7 +13,7 @@ import { fmtInt, fmtPct } from '@/lib/formato';
 import type { Local, VotoCand } from '@/lib/mapas/agregar';
 import { useBrasil } from '@/lib/useBrasil';
 import { useEstadoNaUrl } from '@/lib/useEstadoNaUrl';
-import { useCapitais, useEstadoSegundoTurno } from '@/lib/useEstado';
+import { useEstadoSegundoTurno } from '@/lib/useEstado';
 import { adicionar, useHistorico } from '@/lib/useHistorico';
 import { criarPonto } from '@/lib/historico';
 import { useMarcados } from '@/lib/useMarcados';
@@ -28,7 +28,6 @@ import { MapaBrasil, type Pintura } from './MapaBrasil';
 import { MapaCoropletico } from './MapaCoropletico';
 import { PainelCamara } from './PainelCamara';
 import { CartaoProjecao } from './CartaoProjecao';
-import { PainelCapitais } from './PainelCapitais';
 
 const PRIMEIRO_TURNO_FINAL_MS = 10 * 60_000; // o 1º turno já acabou: basta rever de vez em quando
 
@@ -175,7 +174,6 @@ export function SegundoTurno() {
   const presidente1 = useBrasil('presidente', 1, PRIMEIRO_TURNO_FINAL_MS, true);
   const governadores = useBrasil('governador', 2);
   const detalhe = useEstadoSegundoTurno(uf);
-  const capitais = useCapitais(!uf);
   const [munSel, setMunSel] = useState<string | null>(null);
   // no degradê: candidato escolhido, ou quem lidera (null); ou a variação em relação ao 1º turno
   const [foco, setFoco] = useState<string | null>(null);
@@ -547,11 +545,6 @@ export function SegundoTurno() {
             <div className="order-5">
               <UltimasAtualizacoes eventos={presidente2.eventos} onUf={escolher} />
             </div>
-            {!uf && (
-              <div className="order-5">
-                <PainelCapitais dados={capitais} finalistas={candidatos2} cor={cor} onUf={escolher} />
-              </div>
-            )}
             {!uf && (
               <div className="order-6">
               {nacional && <GraficoEvolucao cargos={nacional.cargos} historico={historico} marcados={marcados} />}
