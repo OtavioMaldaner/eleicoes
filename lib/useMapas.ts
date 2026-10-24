@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { mesclarMapas, type Mapas } from './mapas/agregar';
+import { aoVivo } from './aoVivo';
 
 const INTERVALO_MS = 60_000;
 
@@ -28,11 +29,10 @@ export function useMapas() {
         if (vivo) setErro(e instanceof Error ? e.message : String(e));
       }
     }
-    ciclo();
-    const id = setInterval(ciclo, INTERVALO_MS);
+    const parar = aoVivo(ciclo, INTERVALO_MS);
     return () => {
       vivo = false;
-      clearInterval(id);
+      parar();
     };
   }, []);
 

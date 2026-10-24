@@ -72,4 +72,5 @@ export type ResultadoCargo = {
   erro?: string;
 };
 
-export type Resultados = { cargos: ResultadoCargo[]; buscadoEm: string };
+// desatualizado: o TSE falhou e o servidor devolveu a última cópia boa.
+export type Resultados = { cargos: ResultadoCargo[]; buscadoEm: string; desatualizado?: boolean };

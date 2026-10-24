@@ -4,6 +4,7 @@ import type { Feature } from 'geojson';
 import { useEffect, useState } from 'react';
 import type { CargoBrasil } from './brasil/analise';
 import type { Estado, EstadoSegundoTurno, Municipios } from './brasil/estado';
+import { aoVivo } from './aoVivo';
 
 const INTERVALO_ESTADO_MS = 30_000;
 const INTERVALO_MUNICIPIOS_MS = 90_000;
@@ -26,11 +27,10 @@ export function usePeriodico<T>(chave: string | null, url: string | null, interv
         setEstado((a) => ({ chave, dados: a.chave === chave ? a.dados : null, erro }));
       }
     }
-    ciclo();
-    const id = setInterval(ciclo, intervalo);
+    const parar = aoVivo(ciclo, intervalo);
     return () => {
       vivo = false;
-      clearInterval(id);
+      parar();
     };
   }, [chave, url, intervalo, tempoLimite]);
   return estado.chave === chave ? estado : { chave, dados: null, erro: null };

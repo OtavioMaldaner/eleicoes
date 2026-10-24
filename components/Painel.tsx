@@ -10,6 +10,7 @@ import { GraficoEvolucao } from './GraficoEvolucao';
 import { MeusCandidatos } from './MeusCandidatos';
 import { PainelCargo } from './PainelCargo';
 import { SeletorMunicipio } from './SeletorMunicipio';
+import { SeloAtualizacao } from './SeloAtualizacao';
 
 export function Painel() {
   const [munSalvo, setMunicipio] = useValorLocal('eleicoes2026:municipio');
@@ -31,6 +32,9 @@ export function Painel() {
         )
       ) : (
         <>
+          <p className="text-sm">
+            <SeloAtualizacao buscadoEm={dados.buscadoEm} desatualizado={dados.desatualizado} />
+          </p>
           <ApuracaoGlobal
             cargos={dados.cargos}
             buscadoEm={dados.buscadoEm}

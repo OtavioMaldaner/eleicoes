@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { eventos, type CargoBrasil, type Evento } from './brasil/analise';
 import { mesclarBrasil, type Brasil, type Turno } from './brasil/fetch';
+import { aoVivo } from './aoVivo';
 
 const INTERVALO_MS = 30_000;
 const MAX_EVENTOS = 30;
@@ -45,11 +46,10 @@ export function useBrasil(cargo: CargoBrasil, turno: Turno = 1, intervaloMs = IN
         setEstado((a) => (a.chave === chave ? { ...a, erro } : { chave, cargo, dados: null, erro, eventos: [] }));
       }
     }
-    ciclo();
-    const id = setInterval(ciclo, intervaloMs);
+    const parar = aoVivo(ciclo, intervaloMs);
     return () => {
       vivo = false;
-      clearInterval(id);
+      parar();
     };
   }, [cargo, turno, chave, intervaloMs, final]);
 

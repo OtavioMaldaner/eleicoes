@@ -24,7 +24,7 @@ export type Turno = 1 | 2;
 
 const dadosDoCargo = (cargo: CargoBrasil, turno: Turno) => (turno === 2 ? CARGOS_SEGUNDO_TURNO[cargo as CargoSegundoTurno] : CARGOS_BRASIL[cargo]);
 
-export type Brasil = { cargo: CargoBrasil; nacional: Local | null; estados: Local[]; semResposta: string[]; buscadoEm: string };
+export type Brasil = { cargo: CargoBrasil; nacional: Local | null; estados: Local[]; semResposta: string[]; buscadoEm: string; desatualizado?: boolean };
 
 const TEMPO_LIMITE_MS = 8_000;
 

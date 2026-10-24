@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { mesclar } from './tse/fetch';
 import type { Resultados } from './tse/types';
+import { aoVivo } from './aoVivo';
 
 const INTERVALO_MS = 30_000;
 
@@ -34,11 +35,10 @@ export function useResultados(municipio: string | null) {
         setEstado((a) => ({ escopo, dados: a.escopo === escopo ? a.dados : null, erro }));
       }
     }
-    ciclo();
-    const id = setInterval(ciclo, INTERVALO_MS);
+    const parar = aoVivo(ciclo, INTERVALO_MS);
     return () => {
       vivo = false;
-      clearInterval(id);
+      parar();
     };
   }, [municipio, escopo]);
 

@@ -15,6 +15,7 @@ import { useMarcados } from '@/lib/useMarcados';
 import { Duelo, Linha } from './CartaoEstado';
 import { AnaliseRegioes } from './AnaliseRegioes';
 import { DicaEstado } from './DicaEstado';
+import { SeloAtualizacao } from './SeloAtualizacao';
 import { GraficoEvolucao } from './GraficoEvolucao';
 import { MapaBrasil, type Pintura } from './MapaBrasil';
 import { MapaCoropletico } from './MapaCoropletico';
@@ -260,7 +261,6 @@ export function SegundoTurno() {
 
   const candidatos2 = (nac2 ?? nac1)?.votos.slice(0, 2) ?? [];
   const erro = presidente2.erro && !presidente2.dados ? presidente2.erro : null;
-  const hora = presidente2.dados ? new Date(presidente2.dados.buscadoEm).toLocaleTimeString('pt-BR') : '';
   const aguardando = !!nac2 && nac2.total === 0;
   const semVotos2 = !nac2 || nac2.total === 0;
   const estadosApurados = [...por2.values()].filter((l) => l.total > 0).length;
@@ -297,7 +297,7 @@ export function SegundoTurno() {
                     ))}
                   </div>
                   <span className="ml-auto flex flex-wrap items-center gap-3 text-sm text-zinc-400">
-                    <span>Presidente · 2º turno · atualizado às {hora}</span>
+                    <SeloAtualizacao prefixo="Presidente · 2º turno · " buscadoEm={presidente2.dados.buscadoEm} desatualizado={presidente2.dados.desatualizado} />
                     <button
                       type="button"
                       onClick={() => {

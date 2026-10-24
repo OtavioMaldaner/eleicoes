@@ -19,6 +19,7 @@ import { CartaoEstado } from './CartaoEstado';
 import { MapaBrasil, type Pintura } from './MapaBrasil';
 import { MapaCoropletico } from './MapaCoropletico';
 import { PainelCamara } from './PainelCamara';
+import { SeloAtualizacao } from './SeloAtualizacao';
 import { PainelSenado } from './PainelSenado';
 
 const SEM_VOTOS = '#3f3f46';
@@ -303,7 +304,6 @@ export function Brasil() {
   const nomeEnt = (k: string) =>
     cargo === 'presidente' ? (candidatos.find((v) => v.id === k)?.nome ?? estados.flatMap((l) => l.votos).find((v) => v.id === k)?.nome ?? k) : k;
   const presidente = nacional?.cargos ?? [];
-  const hora = dados ? new Date(dados.buscadoEm).toLocaleTimeString('pt-BR') : '';
 
   return (
     <div className="space-y-4">
@@ -343,7 +343,7 @@ export function Brasil() {
           </select>
         )}
         <div className="ml-auto flex flex-wrap items-center gap-3 text-sm text-zinc-400">
-          {dados && <span>Atualizado às {hora}</span>}
+          {dados && <SeloAtualizacao buscadoEm={dados.buscadoEm} desatualizado={dados.desatualizado} />}
           <button
             type="button"
             onClick={() => {
