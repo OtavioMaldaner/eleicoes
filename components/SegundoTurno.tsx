@@ -267,23 +267,6 @@ export function SegundoTurno() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-zinc-400">
-        <h2 className="text-lg font-semibold text-zinc-100">Presidente · 2º turno</h2>
-        <span className="ml-auto flex flex-wrap items-center gap-3">
-          {presidente2.dados && <span>Atualizado às {hora}</span>}
-          <button
-            type="button"
-            onClick={() => {
-              if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
-              else document.documentElement.requestFullscreen?.().catch(() => {});
-            }}
-            className="rounded-full border border-zinc-800 px-3 py-1.5 text-zinc-200 hover:bg-zinc-800"
-          >
-            Tela cheia
-          </button>
-        </span>
-      </div>
-
       {erro && (
         <p role="alert" className="rounded-lg border border-red-500 bg-red-950 p-3 text-sm">
           Não foi possível carregar o 2º turno ({erro}). Nova tentativa em 30s.
@@ -294,73 +277,10 @@ export function SegundoTurno() {
           Dados desatualizados: a última atualização falhou ({presidente2.erro}).
         </p>
       )}
-      {aguardando && (
-        <p role="status" className="rounded-lg border border-amber-500/60 bg-amber-950/40 p-3 text-sm text-amber-100">
-          Apuração do 2º turno ainda não iniciada. O mapa mostra, em tom suave, quem liderou cada estado no 1º turno e se atualiza sozinho a cada 30s.
-        </p>
-      )}
       {!presidente2.dados && !erro && <p className="text-zinc-400">Carregando os 27 estados…</p>}
 
       {presidente2.dados && (
         <div className="space-y-4">
-          <section className={cartao} aria-label="Presidente no Brasil, 2º turno">
-            <div className="grid gap-5 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] lg:gap-8">
-              <div>
-                <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                  <p className="text-xs uppercase tracking-widest text-zinc-400">Presidente · Brasil · 2º turno</p>
-                  {nac2 && (
-                    <p className="text-sm text-zinc-300">
-                      <span className="text-2xl font-semibold tabular-nums text-zinc-100">{fmtPct(nac2.pctSecoes)}</span> das seções apuradas
-                    </p>
-                  )}
-                </div>
-                {nac2 ? (
-                  <>
-                    <div className="mt-1.5 h-1.5 overflow-hidden rounded bg-zinc-800">
-                      <div className="h-full rounded bg-emerald-400" style={{ width: `${Math.min(nac2.pctSecoes, 100)}%` }} />
-                    </div>
-                    {nac2.total > 0 ? (
-                      <div className="mt-4">
-                        <Disputa cargo="presidente" uf="br" l={nac2} />
-                      </div>
-                    ) : (
-                      <p className="mt-4 text-sm text-zinc-500">Ainda sem votos apurados.</p>
-                    )}
-                  </>
-                ) : (
-                  <p className="mt-2 text-sm text-zinc-400">Sem dados nacionais nesta atualização.</p>
-                )}
-                {nac2 && (
-                  <dl className="mt-4 grid grid-cols-3 gap-3 border-t border-zinc-800 pt-3 text-sm">
-                    <div>
-                      <dt className="text-xs text-zinc-400">Seções</dt>
-                      <dd className="tabular-nums">
-                        {fmtInt(nac2.secoesTotalizadas)} de {fmtInt(nac2.secoes)}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs text-zinc-400">Estados com votos</dt>
-                      <dd className="tabular-nums">{estadosApurados} de 27</dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs text-zinc-400">Eleitorado</dt>
-                      <dd className="tabular-nums">{fmtInt(nac2.eleitorado ?? 0)}</dd>
-                    </div>
-                  </dl>
-                )}
-              </div>
-              {apurado(nac1) && (
-                <div className="lg:border-l lg:border-zinc-800 lg:pl-8">
-                  <h3 className="mb-2 text-xs uppercase tracking-widest text-zinc-400">Como terminou o 1º turno</h3>
-                  <ol className="space-y-2.5">
-                    {nac1.votos.slice(0, 4).map((v) => (
-                      <Linha key={v.id} cargo="presidente" uf="br" v={v} l={nac1} cor={corDe} />
-                    ))}
-                  </ol>
-                </div>
-              )}
-            </div>
-          </section>
 
           <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
             <section className={cartao} aria-label="Mapa">
@@ -375,7 +295,25 @@ export function SegundoTurno() {
                     </button>
                   ))}
                 </div>
+                <span className="ml-auto flex flex-wrap items-center gap-3 text-sm text-zinc-400">
+                  <span>Presidente · 2º turno · atualizado às {hora}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+                      else document.documentElement.requestFullscreen?.().catch(() => {});
+                    }}
+                    className="rounded-full border border-zinc-800 px-3 py-1.5 text-zinc-200 hover:bg-zinc-800"
+                  >
+                    Tela cheia
+                  </button>
+                </span>
               </div>
+              {aguardando && (
+                <p role="status" className="mb-2 rounded-lg border border-amber-500/60 bg-amber-950/40 px-3 py-2 text-xs text-amber-100">
+                  Apuração do 2º turno ainda não iniciada: o mapa mostra o líder de cada lugar no 1º turno e se atualiza sozinho a cada 30s.
+                </p>
+              )}
               {uf ? (
                 <div>
                   <div className="mb-2 flex flex-wrap items-center gap-2 text-sm">
@@ -477,6 +415,52 @@ export function SegundoTurno() {
             </section>
 
             <div className="space-y-4">
+              <section className={cartao} aria-label="Presidente no Brasil, 2º turno">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                  <p className="text-xs uppercase tracking-widest text-zinc-400">Presidente · Brasil · 2º turno</p>
+                  {nac2 && (
+                    <p className="text-sm text-zinc-300">
+                      <span className="text-xl font-semibold tabular-nums text-zinc-100">{fmtPct(nac2.pctSecoes)}</span> das seções
+                    </p>
+                  )}
+                </div>
+                {nac2 ? (
+                  <>
+                    <div className="mt-1.5 h-1.5 overflow-hidden rounded bg-zinc-800">
+                      <div className="h-full rounded bg-emerald-400" style={{ width: `${Math.min(nac2.pctSecoes, 100)}%` }} />
+                    </div>
+                    {nac2.total > 0 && (
+                      <div className="mt-3">
+                        <Disputa cargo="presidente" uf="br" l={nac2} />
+                      </div>
+                    )}
+                    <dl className="mt-3 space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <dt className="text-zinc-400">Seções</dt>
+                        <dd className="tabular-nums">
+                          {fmtInt(nac2.secoesTotalizadas)} de {fmtInt(nac2.secoes)}
+                        </dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt className="text-zinc-400">Estados com votos</dt>
+                        <dd className="tabular-nums">{estadosApurados} de 27</dd>
+                      </div>
+                    </dl>
+                  </>
+                ) : (
+                  <p className="mt-2 text-sm text-zinc-400">Sem dados nacionais nesta atualização.</p>
+                )}
+                {apurado(nac1) && (
+                  <div className="mt-3 border-t border-zinc-800 pt-3">
+                    <h3 className="mb-2 text-xs uppercase tracking-widest text-zinc-400">Como terminou o 1º turno</h3>
+                    <ol className="space-y-2">
+                      {nac1.votos.slice(0, 2).map((v) => (
+                        <Linha key={v.id} cargo="presidente" uf="br" v={v} l={nac1} cor={corDe} />
+                      ))}
+                    </ol>
+                  </div>
+                )}
+              </section>
               {uf ? (
                 <>
                   <CartaoEstado uf={uf} nome={nomeUf(uf)} dados={detalhe.resumo} onFechar={() => escolher(null)} />
