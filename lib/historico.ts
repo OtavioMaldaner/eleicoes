@@ -10,7 +10,7 @@ type XY = { t: number; y: number };
 export type Serie = { id: string; pontos: XY[]; segmentos: XY[][] };
 
 export const MAX_PONTOS = 400;
-export const INTERVALO_MIN_MS = 60_000;
+export const INTERVALO_MIN_MS = 20_000; // menor que o ciclo de 30s: todo dado novo entra na curva
 export const TOPO_PROPORCIONAL = 40;
 export const MAX_LINHAS = 8;
 
