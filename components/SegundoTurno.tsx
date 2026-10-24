@@ -13,6 +13,7 @@ import { adicionar, useHistorico } from '@/lib/useHistorico';
 import { criarPonto } from '@/lib/historico';
 import { useMarcados } from '@/lib/useMarcados';
 import { Duelo, Linha } from './CartaoEstado';
+import { AnaliseRegioes } from './AnaliseRegioes';
 import { DicaEstado } from './DicaEstado';
 import { GraficoEvolucao } from './GraficoEvolucao';
 import { MapaBrasil, type Pintura } from './MapaBrasil';
@@ -327,6 +328,14 @@ export function SegundoTurno() {
                 </div>
               )}
             </section>
+
+            <AnaliseRegioes
+              estados2={presidente2.dados?.estados ?? []}
+              estados1={presidente1.dados?.estados ?? []}
+              finalistas={candidatos2}
+              cor={cor}
+              onUf={escolher}
+            />
 
             {nacional && <GraficoEvolucao cargos={nacional.cargos} historico={historico} marcados={marcados} />}
 
