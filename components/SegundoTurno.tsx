@@ -20,8 +20,14 @@ import { PainelCamara } from './PainelCamara';
 const SEM_VOTOS = '#3f3f46';
 const EMPATE = '#71717a';
 const OPACIDADE_1T = 0.4;
+// Degradê: a cor vai do quase apagado ao pleno entre estes percentuais.
+const FAIXA_LIDER = [50, 80] as const; // quem lidera num 2º turno tem 50% ou mais
+const FAIXA_CANDIDATO = [15, 80] as const;
+const intensidade = (p: number, [de, ate]: readonly [number, number]) => 0.12 + 0.88 * Math.min(Math.max((p - de) / (ate - de), 0), 1);
 const PRIMEIRO_TURNO_FINAL_MS = 10 * 60_000; // o 1º turno já acabou: basta rever de vez em quando
 
+const pilula = (ativa: boolean) =>
+  `rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${ativa ? 'bg-zinc-100 text-zinc-950' : 'text-zinc-300 hover:bg-zinc-800 hover:text-white'}`;
 const chaveMunicipio = (f: Feature) => String(f.properties?.codarea ?? '');
 const cartao = 'rounded-2xl border border-zinc-800 bg-zinc-900 p-4';
 // `eleito` do TSE também marca quem vai ao 2º turno; só a situação distingue.
@@ -145,6 +151,8 @@ export function SegundoTurno() {
   const governadores = useBrasil('governador', 2);
   const detalhe = useEstadoSegundoTurno(uf);
   const [munSel, setMunSel] = useState<string | null>(null);
+  const [modo, setModo] = useState<'lider' | 'degrade'>('lider');
+  const [foco, setFoco] = useState<string | null>(null); // no degradê: candidato escolhido, ou quem lidera
   const escolher = (k: string | null) => {
     setUf(k);
     setMunSel(null);
@@ -180,6 +188,14 @@ export function SegundoTurno() {
 
   // 2º turno quando já há votos; senão o líder do 1º turno, em tom suave.
   function pinturaDe(l2: Local | undefined, l1: Local | undefined): Pintura {
+    if (apurado(l2) && modo === 'degrade') {
+      const alvo = foco ? candidatos2.find((c) => c.id === foco) : undefined;
+      if (alvo) {
+        const v = l2.votos.find((x) => x.id === alvo.id);
+        return { fill: cor(alvo), opacidade: intensidade(v ? pct(v, l2) : 0, FAIXA_CANDIDATO) };
+      }
+      return l2.lider ? { fill: cor(l2.votos[0]), opacidade: intensidade(pct(l2.votos[0], l2), FAIXA_LIDER) } : { fill: EMPATE, opacidade: 1 };
+    }
     if (apurado(l2)) return { fill: l2.lider ? cor(l2.votos[0]) : EMPATE, opacidade: 1 };
     if (apurado(l1) && l1.lider) return { fill: cor(l1.votos[0]), opacidade: OPACIDADE_1T };
     return { fill: SEM_VOTOS, opacidade: 1 };
@@ -337,6 +353,28 @@ export function SegundoTurno() {
           </div>
 
           <section className={`${cartao} order-first xl:order-none`} aria-label="Mapa">
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <div className="flex rounded-full border border-zinc-800 bg-zinc-950 p-1" role="group" aria-label="Cor do mapa">
+                <button type="button" aria-pressed={modo === 'lider'} onClick={() => setModo('lider')} className={pilula(modo === 'lider')}>
+                  Líder
+                </button>
+                <button type="button" aria-pressed={modo === 'degrade'} onClick={() => setModo('degrade')} className={pilula(modo === 'degrade')}>
+                  Degradê
+                </button>
+              </div>
+              {modo === 'degrade' && (
+                <div className="flex flex-wrap rounded-full border border-zinc-800 bg-zinc-950 p-1" role="group" aria-label="Candidato do degradê">
+                  <button type="button" aria-pressed={foco === null} onClick={() => setFoco(null)} className={pilula(foco === null)}>
+                    Quem lidera
+                  </button>
+                  {candidatos2.map((v) => (
+                    <button key={v.id} type="button" aria-pressed={foco === v.id} onClick={() => setFoco(v.id)} className={pilula(foco === v.id)}>
+                      {v.nome}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             {uf ? (
               <div>
                 <div className="mb-2 flex flex-wrap items-center gap-2 text-sm">
@@ -402,6 +440,26 @@ export function SegundoTurno() {
                   <Amostra cor={cor(v)} /> {v.nome} ({v.partido})
                 </li>
               ))}
+              {modo === 'degrade' && (
+                <li className="flex basis-full flex-wrap items-center gap-x-4 gap-y-1">
+                  {(foco ? candidatos2.filter((v) => v.id === foco) : candidatos2).map((v) => {
+                    const [de, ate] = foco ? FAIXA_CANDIDATO : FAIXA_LIDER;
+                    return (
+                      <span key={v.id} className="flex items-center gap-1.5">
+                        <span className="tabular-nums text-zinc-400">{de}%</span>
+                        <span
+                          className="h-2.5 w-24 rounded"
+                          style={{ background: `linear-gradient(to right, ${cor(v)}1f, ${cor(v)})` }}
+                          role="img"
+                          aria-label={`Escala de ${v.nome}: de ${de}% a ${ate}% dos votos`}
+                        />
+                        <span className="tabular-nums text-zinc-400">{ate}%</span>
+                        <span className="text-zinc-300">{v.nome}</span>
+                      </span>
+                    );
+                  })}
+                </li>
+              )}
               <li className="flex items-center gap-1.5">
                 <Amostra cor={EMPATE} /> Empate
               </li>
@@ -410,7 +468,12 @@ export function SegundoTurno() {
               </li>
             </ul>
             <p className="mt-2 text-xs text-zinc-500">
-              Cada estado (e, ao abrir um estado, cada município) tem a cor de quem lidera o 2º turno. Enquanto não há votos, aparece em tom suave o líder do 1º turno. Clique num estado para ver as cidades, o presidente, o governador, o senado e os deputados.
+              {modo === 'lider'
+                ? 'Cada estado (e, ao abrir um estado, cada município) tem a cor de quem lidera o 2º turno. '
+                : foco
+                  ? 'Quanto mais forte a cor, maior o percentual do candidato escolhido no local. '
+                  : 'A cor é a de quem lidera; quanto mais forte, maior o percentual do líder no local. '}
+              Enquanto não há votos, aparece em tom suave o líder do 1º turno. Clique num estado para ver as cidades, o presidente, o governador, o senado e os deputados.
             </p>
           </section>
 
