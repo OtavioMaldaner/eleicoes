@@ -302,64 +302,194 @@ export function SegundoTurno() {
       {!presidente2.dados && !erro && <p className="text-zinc-400">Carregando os 27 estados…</p>}
 
       {presidente2.dados && (
-        <div className="grid items-start gap-4 xl:grid-cols-[340px_minmax(0,1fr)_340px]">
-          <div className="space-y-4">
-            <section className={cartao} aria-label="Presidente no Brasil, 2º turno">
-              <p className="text-xs uppercase tracking-widest text-zinc-400">Presidente · Brasil · 2º turno</p>
-              {nac2 ? (
-                <>
-                  <p className="mt-2 text-2xl font-semibold leading-tight">
-                    <span className="tabular-nums">{fmtPct(nac2.pctSecoes)}</span> das seções apuradas
-                  </p>
-                  {nac2.total > 0 ? (
-                    <div className="mt-4">
-                      <Disputa cargo="presidente" uf="br" l={nac2} />
-                    </div>
-                  ) : (
-                    <p className="mt-3 text-sm text-zinc-500">Ainda sem votos apurados.</p>
+        <div className="space-y-4">
+          <section className={cartao} aria-label="Presidente no Brasil, 2º turno">
+            <div className="grid gap-5 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] lg:gap-8">
+              <div>
+                <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                  <p className="text-xs uppercase tracking-widest text-zinc-400">Presidente · Brasil · 2º turno</p>
+                  {nac2 && (
+                    <p className="text-sm text-zinc-300">
+                      <span className="text-2xl font-semibold tabular-nums text-zinc-100">{fmtPct(nac2.pctSecoes)}</span> das seções apuradas
+                    </p>
                   )}
-                  <dl className="mt-4 space-y-1 border-t border-zinc-800 pt-3 text-sm">
-                    <div className="flex justify-between">
-                      <dt className="text-zinc-400">Seções</dt>
+                </div>
+                {nac2 ? (
+                  <>
+                    <div className="mt-1.5 h-1.5 overflow-hidden rounded bg-zinc-800">
+                      <div className="h-full rounded bg-emerald-400" style={{ width: `${Math.min(nac2.pctSecoes, 100)}%` }} />
+                    </div>
+                    {nac2.total > 0 ? (
+                      <div className="mt-4">
+                        <Disputa cargo="presidente" uf="br" l={nac2} />
+                      </div>
+                    ) : (
+                      <p className="mt-4 text-sm text-zinc-500">Ainda sem votos apurados.</p>
+                    )}
+                  </>
+                ) : (
+                  <p className="mt-2 text-sm text-zinc-400">Sem dados nacionais nesta atualização.</p>
+                )}
+                {nac2 && (
+                  <dl className="mt-4 grid grid-cols-3 gap-3 border-t border-zinc-800 pt-3 text-sm">
+                    <div>
+                      <dt className="text-xs text-zinc-400">Seções</dt>
                       <dd className="tabular-nums">
                         {fmtInt(nac2.secoesTotalizadas)} de {fmtInt(nac2.secoes)}
                       </dd>
                     </div>
-                    <div className="flex justify-between">
-                      <dt className="text-zinc-400">Estados com votos</dt>
+                    <div>
+                      <dt className="text-xs text-zinc-400">Estados com votos</dt>
                       <dd className="tabular-nums">{estadosApurados} de 27</dd>
                     </div>
-                    <div className="flex justify-between">
-                      <dt className="text-zinc-400">Eleitorado</dt>
+                    <div>
+                      <dt className="text-xs text-zinc-400">Eleitorado</dt>
                       <dd className="tabular-nums">{fmtInt(nac2.eleitorado ?? 0)}</dd>
                     </div>
                   </dl>
-                </>
-              ) : (
-                <p className="mt-2 text-sm text-zinc-400">Sem dados nacionais nesta atualização.</p>
-              )}
+                )}
+              </div>
               {apurado(nac1) && (
-                <div className="mt-4 border-t border-zinc-800 pt-3">
+                <div className="lg:border-l lg:border-zinc-800 lg:pl-8">
                   <h3 className="mb-2 text-xs uppercase tracking-widest text-zinc-400">Como terminou o 1º turno</h3>
-                  <ol className="space-y-2">
+                  <ol className="space-y-2.5">
                     {nac1.votos.slice(0, 4).map((v) => (
                       <Linha key={v.id} cargo="presidente" uf="br" v={v} l={nac1} cor={corDe} />
                     ))}
                   </ol>
                 </div>
               )}
+            </div>
+          </section>
+
+          <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
+            <section className={cartao} aria-label="Mapa">
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap rounded-full border border-zinc-800 bg-zinc-950 p-1" role="group" aria-label="Candidato do degradê">
+                  <button type="button" aria-pressed={foco === null} onClick={() => setFoco(null)} className={pilula(foco === null)}>
+                    Quem lidera
+                  </button>
+                  {candidatos2.map((v) => (
+                    <button key={v.id} type="button" aria-pressed={foco === v.id} onClick={() => setFoco(v.id)} className={pilula(foco === v.id)}>
+                      {v.nome}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {uf ? (
+                <div>
+                  <div className="mb-2 flex flex-wrap items-center gap-2 text-sm">
+                    <button type="button" onClick={() => escolher(null)} className="rounded-full border border-zinc-700 px-3 py-1 text-zinc-200 hover:bg-zinc-800">
+                      ‹ Brasil
+                    </button>
+                    <span className="font-semibold">{nomeUf(uf)}</span>
+                    <span className="text-xs text-zinc-500">por município · atualiza a cada 90s</span>
+                  </div>
+                  {detalhe.contornos && (detalhe.municipios2 || detalhe.municipios1) ? (
+                    <div className="mx-auto w-full max-w-[min(900px,calc(100vh-9rem))]">
+                      <MapaCoropletico
+                        titulo={`Mapa de ${nomeUf(uf)} por município`}
+                        features={detalhe.contornos}
+                        chaveDe={chaveMunicipio}
+                        projecao="plana"
+                        proporcao={0.85}
+                        cor={(k) => pinturaMun(k).fill}
+                        opacidade={(k) => pinturaMun(k).opacidade}
+                        rotulo={rotuloMun}
+                        selecionado={munSel}
+                        onSelecionar={setMunSel}
+                        dica={dicaMun}
+                      />
+                    </div>
+                  ) : (
+                    <p className="py-16 text-center text-sm text-zinc-400">
+                      {detalhe.erroMunicipios ? `Não foi possível carregar os municípios (${detalhe.erroMunicipios}).` : `Carregando os municípios de ${nomeUf(uf)}…`}
+                    </p>
+                  )}
+                  <p className="mt-2 min-h-10 rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm" aria-live="polite">
+                    {munAtual ? (
+                      <>
+                        <span className="font-semibold">{munAtual.nome}</span>{' '}
+                        {apurado(lMun) ? (
+                          <>
+                            <span className="text-xs text-zinc-400">{apurado(munApurado) ? `2º turno · ${fmtPct(munApurado.pctSecoes)} das seções` : '1º turno (2º ainda sem votos)'}</span>
+                            {lMun.votos.slice(0, 2).map((v) => (
+                              <span key={v.id} className="ml-3 inline-flex items-center gap-1.5 whitespace-nowrap">
+                                <Amostra cor={cor(v)} /> {v.nome} <span className="tabular-nums text-zinc-300">{fmtPct(pct(v, lMun))}</span>
+                              </span>
+                            ))}
+                          </>
+                        ) : (
+                          <span className="ml-3 text-zinc-400">sem votos apurados</span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-zinc-500">Passe o mouse ou toque num município para ver os votos.</span>
+                    )}
+                  </p>
+                  {(detalhe.municipios2?.falhas ?? 0) > 0 && (
+                    <p className="mt-1 text-xs text-amber-300">{detalhe.municipios2!.falhas} municípios não responderam nesta atualização.</p>
+                  )}
+                </div>
+              ) : (
+                <div className="mx-auto w-full max-w-[min(900px,calc(100vh-9rem))]">
+                  <MapaBrasil features={contornos} pintura={pintura} rotulo={rotulo} selecionado={uf} onSelecionar={escolher} dica={dicaEstado} />
+                </div>
+              )}
+              <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-300">
+                {candidatos2.map((v) => (
+                  <li key={v.id} className="flex items-center gap-1.5">
+                    <Amostra cor={cor(v)} /> {v.nome} ({v.partido})
+                  </li>
+                ))}
+                <li className="flex basis-full flex-wrap items-center gap-x-4 gap-y-1">
+                  {(foco ? candidatos2.filter((v) => v.id === foco) : candidatos2).map((v) => {
+                    const [de, ate] = foco ? FAIXA_CANDIDATO : semVotos2 ? FAIXA_LIDER_1T : FAIXA_LIDER;
+                    return (
+                      <span key={v.id} className="flex items-center gap-1.5">
+                        <span className="tabular-nums text-zinc-400">{de}%</span>
+                        <span
+                          className="h-2.5 w-24 rounded"
+                          style={{ background: `linear-gradient(to right, ${cor(v)}1f, ${cor(v)})` }}
+                          role="img"
+                          aria-label={`Escala de ${v.nome}: de ${de}% a ${ate}% dos votos`}
+                        />
+                        <span className="tabular-nums text-zinc-400">{ate}%</span>
+                        <span className="text-zinc-300">{v.nome}</span>
+                      </span>
+                    );
+                  })}
+                </li>
+                <li className="flex items-center gap-1.5">
+                  <Amostra cor={EMPATE} /> Empate
+                </li>
+                <li className="flex items-center gap-1.5">
+                  <Amostra cor={SEM_VOTOS} /> Sem votos apurados
+                </li>
+              </ul>
+              <p className="mt-2 text-xs text-zinc-500">
+                {foco
+                  ? 'Quanto mais forte a cor, maior o percentual do candidato escolhido no local. '
+                  : 'A cor é a de quem lidera; quanto mais forte, maior o percentual do líder no local. '}
+                {semVotos2 && 'Enquanto o 2º turno não tem votos, o degradê usa os percentuais do 1º turno. '}
+                Enquanto não há votos, aparece em tom suave o líder do 1º turno. Clique num estado para ver as cidades, o presidente, o governador, o senado e os deputados.
+              </p>
             </section>
 
-            <AnaliseRegioes
-              estados2={presidente2.dados?.estados ?? []}
-              estados1={presidente1.dados?.estados ?? []}
-              finalistas={candidatos2}
-              cor={cor}
-              onUf={escolher}
-            />
-
-            {nacional && <GraficoEvolucao cargos={nacional.cargos} historico={historico} marcados={marcados} />}
-
+            <div className="space-y-4">
+              {uf ? (
+                <>
+                  <CartaoEstado uf={uf} nome={nomeUf(uf)} dados={detalhe.resumo} onFechar={() => escolher(null)} />
+                  {detalhe.resumo && apurado(detalhe.resumo.depFederal) && (
+                    <PainelCamara titulo={nomeUf(uf)} locais={[detalhe.resumo.depFederal]} cor={corPartido} contagem={null} />
+                  )}
+                </>
+              ) : (
+                <section className={`${cartao} text-sm text-zinc-400`}>
+                  <h2 className="mb-1 text-base font-semibold text-zinc-100">Escolha um estado</h2>
+                  Clique no mapa ou num governador da lista para ver, no mesmo lugar: o 2º turno ao vivo, como terminou o 1º turno, os senadores eleitos e a bancada de deputados federais.
+                </section>
+              )}
             <section className={cartao} aria-label="Governadores no 2º turno">
               <h2 className="text-xs uppercase tracking-widest text-zinc-400">Governadores · 2º turno</h2>
               {governadores2.length === 0 ? (
@@ -400,135 +530,18 @@ export function SegundoTurno() {
                 </ul>
               )}
             </section>
+            </div>
           </div>
 
-          <section className={`${cartao} order-first xl:order-none`} aria-label="Mapa">
-            <div className="mb-3 flex flex-wrap items-center gap-2">
-              <div className="flex flex-wrap rounded-full border border-zinc-800 bg-zinc-950 p-1" role="group" aria-label="Candidato do degradê">
-                <button type="button" aria-pressed={foco === null} onClick={() => setFoco(null)} className={pilula(foco === null)}>
-                  Quem lidera
-                </button>
-                {candidatos2.map((v) => (
-                  <button key={v.id} type="button" aria-pressed={foco === v.id} onClick={() => setFoco(v.id)} className={pilula(foco === v.id)}>
-                    {v.nome}
-                  </button>
-                ))}
-              </div>
-            </div>
-            {uf ? (
-              <div>
-                <div className="mb-2 flex flex-wrap items-center gap-2 text-sm">
-                  <button type="button" onClick={() => escolher(null)} className="rounded-full border border-zinc-700 px-3 py-1 text-zinc-200 hover:bg-zinc-800">
-                    ‹ Brasil
-                  </button>
-                  <span className="font-semibold">{nomeUf(uf)}</span>
-                  <span className="text-xs text-zinc-500">por município · atualiza a cada 90s</span>
-                </div>
-                {detalhe.contornos && (detalhe.municipios2 || detalhe.municipios1) ? (
-                  <div className="mx-auto max-w-[760px]">
-                    <MapaCoropletico
-                      titulo={`Mapa de ${nomeUf(uf)} por município`}
-                      features={detalhe.contornos}
-                      chaveDe={chaveMunicipio}
-                      projecao="plana"
-                      proporcao={0.85}
-                      cor={(k) => pinturaMun(k).fill}
-                      opacidade={(k) => pinturaMun(k).opacidade}
-                      rotulo={rotuloMun}
-                      selecionado={munSel}
-                      onSelecionar={setMunSel}
-                      dica={dicaMun}
-                    />
-                  </div>
-                ) : (
-                  <p className="py-16 text-center text-sm text-zinc-400">
-                    {detalhe.erroMunicipios ? `Não foi possível carregar os municípios (${detalhe.erroMunicipios}).` : `Carregando os municípios de ${nomeUf(uf)}…`}
-                  </p>
-                )}
-                <p className="mt-2 min-h-10 rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm" aria-live="polite">
-                  {munAtual ? (
-                    <>
-                      <span className="font-semibold">{munAtual.nome}</span>{' '}
-                      {apurado(lMun) ? (
-                        <>
-                          <span className="text-xs text-zinc-400">{apurado(munApurado) ? `2º turno · ${fmtPct(munApurado.pctSecoes)} das seções` : '1º turno (2º ainda sem votos)'}</span>
-                          {lMun.votos.slice(0, 2).map((v) => (
-                            <span key={v.id} className="ml-3 inline-flex items-center gap-1.5 whitespace-nowrap">
-                              <Amostra cor={cor(v)} /> {v.nome} <span className="tabular-nums text-zinc-300">{fmtPct(pct(v, lMun))}</span>
-                            </span>
-                          ))}
-                        </>
-                      ) : (
-                        <span className="ml-3 text-zinc-400">sem votos apurados</span>
-                      )}
-                    </>
-                  ) : (
-                    <span className="text-zinc-500">Passe o mouse ou toque num município para ver os votos.</span>
-                  )}
-                </p>
-                {(detalhe.municipios2?.falhas ?? 0) > 0 && (
-                  <p className="mt-1 text-xs text-amber-300">{detalhe.municipios2!.falhas} municípios não responderam nesta atualização.</p>
-                )}
-              </div>
-            ) : (
-              <div className="mx-auto max-w-[760px]">
-                <MapaBrasil features={contornos} pintura={pintura} rotulo={rotulo} selecionado={uf} onSelecionar={escolher} dica={dicaEstado} />
-              </div>
-            )}
-            <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-300">
-              {candidatos2.map((v) => (
-                <li key={v.id} className="flex items-center gap-1.5">
-                  <Amostra cor={cor(v)} /> {v.nome} ({v.partido})
-                </li>
-              ))}
-              <li className="flex basis-full flex-wrap items-center gap-x-4 gap-y-1">
-                {(foco ? candidatos2.filter((v) => v.id === foco) : candidatos2).map((v) => {
-                  const [de, ate] = foco ? FAIXA_CANDIDATO : semVotos2 ? FAIXA_LIDER_1T : FAIXA_LIDER;
-                  return (
-                    <span key={v.id} className="flex items-center gap-1.5">
-                      <span className="tabular-nums text-zinc-400">{de}%</span>
-                      <span
-                        className="h-2.5 w-24 rounded"
-                        style={{ background: `linear-gradient(to right, ${cor(v)}1f, ${cor(v)})` }}
-                        role="img"
-                        aria-label={`Escala de ${v.nome}: de ${de}% a ${ate}% dos votos`}
-                      />
-                      <span className="tabular-nums text-zinc-400">{ate}%</span>
-                      <span className="text-zinc-300">{v.nome}</span>
-                    </span>
-                  );
-                })}
-              </li>
-              <li className="flex items-center gap-1.5">
-                <Amostra cor={EMPATE} /> Empate
-              </li>
-              <li className="flex items-center gap-1.5">
-                <Amostra cor={SEM_VOTOS} /> Sem votos apurados
-              </li>
-            </ul>
-            <p className="mt-2 text-xs text-zinc-500">
-              {foco
-                ? 'Quanto mais forte a cor, maior o percentual do candidato escolhido no local. '
-                : 'A cor é a de quem lidera; quanto mais forte, maior o percentual do líder no local. '}
-              {semVotos2 && 'Enquanto o 2º turno não tem votos, o degradê usa os percentuais do 1º turno. '}
-              Enquanto não há votos, aparece em tom suave o líder do 1º turno. Clique num estado para ver as cidades, o presidente, o governador, o senado e os deputados.
-            </p>
-          </section>
-
-          <div className="space-y-4">
-            {uf ? (
-              <>
-                <CartaoEstado uf={uf} nome={nomeUf(uf)} dados={detalhe.resumo} onFechar={() => escolher(null)} />
-                {detalhe.resumo && apurado(detalhe.resumo.depFederal) && (
-                  <PainelCamara titulo={nomeUf(uf)} locais={[detalhe.resumo.depFederal]} cor={corPartido} contagem={null} />
-                )}
-              </>
-            ) : (
-              <section className={`${cartao} text-sm text-zinc-400`}>
-                <h2 className="mb-1 text-base font-semibold text-zinc-100">Escolha um estado</h2>
-                Clique no mapa ou num governador da lista para ver, no mesmo lugar: o 2º turno ao vivo, como terminou o 1º turno, os senadores eleitos e a bancada de deputados federais.
-              </section>
-            )}
+          <div className="grid items-start gap-4 lg:grid-cols-2">
+            <AnaliseRegioes
+              estados2={presidente2.dados?.estados ?? []}
+              estados1={presidente1.dados?.estados ?? []}
+              finalistas={candidatos2}
+              cor={cor}
+              onUf={escolher}
+            />
+            {nacional && <GraficoEvolucao cargos={nacional.cargos} historico={historico} marcados={marcados} />}
           </div>
         </div>
       )}
