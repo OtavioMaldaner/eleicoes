@@ -23,6 +23,7 @@ const OPACIDADE_1T = 0.4;
 // Degradê: a cor vai do quase apagado ao pleno entre estes percentuais.
 const FAIXA_LIDER = [50, 80] as const; // quem lidera num 2º turno tem 50% ou mais
 const FAIXA_CANDIDATO = [15, 80] as const;
+const FAIXA_LIDER_1T = [30, 70] as const; // no 1º turno o líder tem bem menos de 50%
 const intensidade = (p: number, [de, ate]: readonly [number, number]) => 0.12 + 0.88 * Math.min(Math.max((p - de) / (ate - de), 0), 1);
 const PRIMEIRO_TURNO_FINAL_MS = 10 * 60_000; // o 1º turno já acabou: basta rever de vez em quando
 
@@ -188,13 +189,17 @@ export function SegundoTurno() {
 
   // 2º turno quando já há votos; senão o líder do 1º turno, em tom suave.
   function pinturaDe(l2: Local | undefined, l1: Local | undefined): Pintura {
-    if (apurado(l2) && modo === 'degrade') {
+    // Sem votos no 2º turno, o degradê usa os percentuais do 1º turno para já mostrar onde cada um é forte.
+    const base = apurado(l2) ? l2 : apurado(l1) ? l1 : undefined;
+    if (base && modo === 'degrade') {
       const alvo = foco ? candidatos2.find((c) => c.id === foco) : undefined;
       if (alvo) {
-        const v = l2.votos.find((x) => x.id === alvo.id);
-        return { fill: cor(alvo), opacidade: intensidade(v ? pct(v, l2) : 0, FAIXA_CANDIDATO) };
+        const v = base.votos.find((x) => x.id === alvo.id);
+        return { fill: cor(alvo), opacidade: intensidade(v ? pct(v, base) : 0, FAIXA_CANDIDATO) };
       }
-      return l2.lider ? { fill: cor(l2.votos[0]), opacidade: intensidade(pct(l2.votos[0], l2), FAIXA_LIDER) } : { fill: EMPATE, opacidade: 1 };
+      return base.lider
+        ? { fill: cor(base.votos[0]), opacidade: intensidade(pct(base.votos[0], base), base === l2 ? FAIXA_LIDER : FAIXA_LIDER_1T) }
+        : { fill: EMPATE, opacidade: 1 };
     }
     if (apurado(l2)) return { fill: l2.lider ? cor(l2.votos[0]) : EMPATE, opacidade: 1 };
     if (apurado(l1) && l1.lider) return { fill: cor(l1.votos[0]), opacidade: OPACIDADE_1T };
@@ -221,6 +226,7 @@ export function SegundoTurno() {
   const erro = presidente2.erro && !presidente2.dados ? presidente2.erro : null;
   const hora = presidente2.dados ? new Date(presidente2.dados.buscadoEm).toLocaleTimeString('pt-BR') : '';
   const aguardando = !!nac2 && nac2.total === 0;
+  const semVotos2 = !nac2 || nac2.total === 0;
   const estadosApurados = [...por2.values()].filter((l) => l.total > 0).length;
 
   return (
@@ -443,7 +449,7 @@ export function SegundoTurno() {
               {modo === 'degrade' && (
                 <li className="flex basis-full flex-wrap items-center gap-x-4 gap-y-1">
                   {(foco ? candidatos2.filter((v) => v.id === foco) : candidatos2).map((v) => {
-                    const [de, ate] = foco ? FAIXA_CANDIDATO : FAIXA_LIDER;
+                    const [de, ate] = foco ? FAIXA_CANDIDATO : semVotos2 ? FAIXA_LIDER_1T : FAIXA_LIDER;
                     return (
                       <span key={v.id} className="flex items-center gap-1.5">
                         <span className="tabular-nums text-zinc-400">{de}%</span>
@@ -473,6 +479,7 @@ export function SegundoTurno() {
                 : foco
                   ? 'Quanto mais forte a cor, maior o percentual do candidato escolhido no local. '
                   : 'A cor é a de quem lidera; quanto mais forte, maior o percentual do líder no local. '}
+              {modo === 'degrade' && semVotos2 && 'Enquanto o 2º turno não tem votos, o degradê usa os percentuais do 1º turno. '}
               Enquanto não há votos, aparece em tom suave o líder do 1º turno. Clique num estado para ver as cidades, o presidente, o governador, o senado e os deputados.
             </p>
           </section>
