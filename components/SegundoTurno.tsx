@@ -526,15 +526,17 @@ export function SegundoTurno() {
               </section>
             )}
             </div>
-            <div className="order-5">
-            <AnaliseRegioes
-              estados2={presidente2.dados?.estados ?? []}
-              estados1={presidente1.dados?.estados ?? []}
-              finalistas={candidatos2}
-              cor={cor}
-              onUf={escolher}
-            />
-            </div>
+            {!uf && (
+              <div className="order-5">
+                <AnaliseRegioes
+                  estados2={presidente2.dados?.estados ?? []}
+                  estados1={presidente1.dados?.estados ?? []}
+                  finalistas={candidatos2}
+                  cor={cor}
+                  onUf={escolher}
+                />
+              </div>
+            )}
             </div>
           </div>
         </div>
