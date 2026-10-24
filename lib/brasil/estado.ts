@@ -1,4 +1,5 @@
 import type { Local } from '../mapas/agregar';
+import { lembrar } from '../servidor/cache';
 import { UFS } from '../mapas/dados';
 import tabela from '../tse/municipios-br.json';
 import type { CargoBrasil } from './analise';
@@ -10,6 +11,7 @@ const TABELA = tabela as Record<string, string[][]>;
 const SIGLAS = new Set(UFS.map((u) => u.sigla));
 const CANDIDATOS_POR_MUNICIPIO = 4;
 const SIMULTANEAS = 60;
+const UMA_HORA = 60 * 60_000;
 
 export function ufValida(uf: string | null | undefined): uf is string {
   return typeof uf === 'string' && SIGLAS.has(uf);
@@ -71,10 +73,11 @@ export async function buscarEstadoSegundoTurno(uf: string, init?: RequestInit): 
   const [presidente2, governador2, presidente1, governador1, senador, depFederal] = await Promise.all([
     buscarLocal('presidente', uf, nome, init, sem, 2),
     buscarLocal('governador', uf, nome, init, sem, 2),
-    buscarLocal('presidente', uf, nome, init),
-    buscarLocal('governador', uf, nome, init),
-    buscarLocal('senador', uf, nome, init),
-    buscarLocal('depFederal', uf, nome, init),
+    // O 1º turno já terminou: não precisa ser consultado de novo a cada rodada.
+    lembrar(`1t:${uf}:presidente`, UMA_HORA, () => buscarLocal('presidente', uf, nome, init)),
+    lembrar(`1t:${uf}:governador`, UMA_HORA, () => buscarLocal('governador', uf, nome, init)),
+    lembrar(`1t:${uf}:senador`, UMA_HORA, () => buscarLocal('senador', uf, nome, init)),
+    lembrar(`1t:${uf}:depFederal`, UMA_HORA, () => buscarLocal('depFederal', uf, nome, init)),
   ]);
   return { uf, presidente2, governador2, presidente1, governador1, senador, depFederal, buscadoEm: new Date().toISOString() };
 }

@@ -1,4 +1,5 @@
 import { municipioValido } from '@/lib/tse/config';
+import { cdn, responder } from '@/lib/servidor/cache';
 import { buscarResultados } from '@/lib/tse/fetch';
 
 export const dynamic = 'force-dynamic';
@@ -9,8 +10,5 @@ export async function GET(request: Request) {
 
   const dados = await buscarResultados({ cache: 'no-store' }, mun ?? undefined);
   const falhouTudo = dados.cargos.every((c) => c.erro);
-  return Response.json(dados, {
-    status: falhouTudo ? 502 : 200,
-    headers: { 'Cache-Control': falhouTudo ? 'no-store' : 'public, s-maxage=10' },
-  });
+  return responder(`resultados:${mun ?? 'rs'}`, dados, { falhouTudo, cache: cdn(10) });
 }

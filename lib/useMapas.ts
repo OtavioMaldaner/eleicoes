@@ -2,21 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { mesclarMapas, type Mapas } from './mapas/agregar';
-import { buscarMapas } from './mapas/fetch';
 
 const INTERVALO_MS = 60_000;
 
 async function buscar(): Promise<Mapas> {
-  try {
-    const r = await fetch('/api/mapas', { cache: 'no-store', signal: AbortSignal.timeout(20_000) });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    return await r.json();
-  } catch {
-    // A rota falhou: busca direto do navegador.
-    const d = await buscarMapas({ cache: 'no-store' });
-    if (d.estados.length === 0 && d.paises.length === 0) throw new Error('Não foi possível consultar o TSE');
-    return d;
-  }
+  // Só o servidor consulta o TSE (veja useResultados).
+  const r = await fetch('/api/mapas', { cache: 'no-store', signal: AbortSignal.timeout(20_000) });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return await r.json();
 }
 
 export function useMapas() {

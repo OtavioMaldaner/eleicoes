@@ -1,5 +1,6 @@
 import type { CargoBrasil } from '@/lib/brasil/analise';
 import { buscarMunicipios, ufValida } from '@/lib/brasil/estado';
+import { cdn, responder } from '@/lib/servidor/cache';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -19,9 +20,7 @@ export async function GET(request: Request) {
 
   const dados = await buscarMunicipios(uf, cargo as CargoBrasil, { cache: 'no-store' }, turno);
   const falhouTudo = dados.municipios.length === 0;
-  return Response.json(dados, {
-    status: falhouTudo ? 502 : 200,
-    // São centenas de arquivos por estado: cache mais longo que o do resto do site.
-    headers: { 'Cache-Control': falhouTudo ? 'no-store' : `public, s-maxage=${dados.falhas ? 20 : final ? 3600 : 90}` },
-  });
+  // São centenas de arquivos por estado: cache mais longo que o do resto do site.
+  const cache = dados.falhas ? cdn(20, 0, 600) : final ? cdn(3600, 3600, 86400) : cdn(90, 120);
+  return responder(`municipios:${uf}:${cargo}:${turno}`, dados, { falhouTudo, cache });
 }

@@ -1,4 +1,5 @@
 import { buscarEstado, ufValida } from '@/lib/brasil/estado';
+import { cdn, responder } from '@/lib/servidor/cache';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,8 +9,5 @@ export async function GET(request: Request) {
 
   const dados = await buscarEstado(uf, { cache: 'no-store' });
   const falhouTudo = !dados.presidente && !dados.governador && !dados.senador;
-  return Response.json(dados, {
-    status: falhouTudo ? 502 : 200,
-    headers: { 'Cache-Control': falhouTudo ? 'no-store' : 'public, s-maxage=15' },
-  });
+  return responder(`estado:${uf}`, dados, { falhouTudo, cache: cdn(15) });
 }

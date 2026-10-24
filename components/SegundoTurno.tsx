@@ -151,7 +151,7 @@ function CartaoEstado({ uf, nome, dados, onFechar }: { uf: string; nome: string;
 export function SegundoTurno() {
   const [uf, setUf] = useState<string | null>(null);
   const presidente2 = useBrasil('presidente', 2);
-  const presidente1 = useBrasil('presidente', 1, PRIMEIRO_TURNO_FINAL_MS);
+  const presidente1 = useBrasil('presidente', 1, PRIMEIRO_TURNO_FINAL_MS, true);
   const governadores = useBrasil('governador', 2);
   const detalhe = useEstadoSegundoTurno(uf);
   const [munSel, setMunSel] = useState<string | null>(null);

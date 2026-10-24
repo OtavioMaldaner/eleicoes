@@ -1,23 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { buscarResultados, mesclar } from './tse/fetch';
+import { mesclar } from './tse/fetch';
 import type { Resultados } from './tse/types';
 
 const INTERVALO_MS = 30_000;
 
 async function buscar(municipio: string | null): Promise<Resultados> {
-  try {
-    const url = municipio ? `/api/resultados?mun=${municipio}` : '/api/resultados';
-    const r = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(12_000) });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    return await r.json();
-  } catch {
-    // A rota falhou (por exemplo, TSE bloqueando o servidor): busca direto do navegador.
-    const d = await buscarResultados({ cache: 'no-store' }, municipio ?? undefined);
-    if (d.cargos.every((c) => c.erro)) throw new Error('Não foi possível consultar o TSE');
-    return d;
-  }
+  // Só o servidor consulta o TSE: se cada visitante consultasse direto, uma falha viraria milhares de pedidos.
+  const url = municipio ? `/api/resultados?mun=${municipio}` : '/api/resultados';
+  const r = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(12_000) });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return await r.json();
 }
 
 type Estado = { escopo: string; dados: Resultados | null; erro: string | null };

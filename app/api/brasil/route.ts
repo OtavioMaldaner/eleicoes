@@ -1,5 +1,6 @@
 import type { CargoBrasil } from '@/lib/brasil/analise';
 import { buscarBrasil, CARGOS_BRASIL, CARGOS_SEGUNDO_TURNO } from '@/lib/brasil/fetch';
+import { cdn, responder } from '@/lib/servidor/cache';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,9 +12,9 @@ export async function GET(request: Request) {
 
   const dados = await buscarBrasil(cargo as CargoBrasil, { cache: 'no-store' }, turno);
   const falhouTudo = dados.estados.length === 0;
-  return Response.json(dados, {
-    status: falhouTudo ? 502 : 200,
-    // Resposta com falhas fica pouco tempo no cache.
-    headers: { 'Cache-Control': falhouTudo ? 'no-store' : `public, s-maxage=${dados.semResposta.length ? 5 : 15}` },
-  });
+  // `final`: dados que já não mudam (1º turno encerrado) ficam muito tempo no cache.
+  const final = params.get('final') === '1' && turno === 1;
+  // Resposta com falhas fica pouco tempo no cache.
+  const cache = dados.semResposta.length ? cdn(5, 0, 600) : final ? cdn(3600, 3600, 86400) : cdn(15);
+  return responder(`brasil:${cargo}:${turno}`, dados, { falhouTudo, cache });
 }
