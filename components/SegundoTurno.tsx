@@ -464,51 +464,55 @@ export function SegundoTurno() {
               )}
             </section>
             </div>
-            <div className="order-4">
-            <section className={cartao} aria-label="Governadores no 2º turno">
-              <h2 className="text-xs uppercase tracking-widest text-zinc-400">Governadores · 2º turno</h2>
-              {governadores2.length === 0 ? (
-                <p className="mt-2 text-sm text-zinc-500">
-                  {governadores.dados ? 'Nenhum estado com 2º turno para governador.' : 'Buscando os estados com 2º turno para governador…'}
-                </p>
-              ) : (
-                <ul className="mt-2 divide-y divide-zinc-800 text-sm">
-                  {governadores2.map((l) => {
-                    const [a, b] = l.votos;
-                    return (
-                      <li key={l.chave}>
-                        <button
-                          type="button"
-                          onClick={() => escolher(l.chave)}
-                          className={`flex w-full flex-col gap-0.5 px-1 py-2 text-left hover:bg-zinc-800 ${uf === l.chave ? 'bg-zinc-800' : ''}`}
-                        >
-                          <span className="flex items-baseline justify-between gap-2">
-                            <span className="font-semibold">{l.nome}</span>
-                            <span className="text-xs tabular-nums text-zinc-500">{fmtPct(l.pctSecoes)} das seções</span>
-                          </span>
-                          {[a, b].map(
-                            (v) =>
-                              v && (
-                                <span key={v.id} className="flex items-center gap-2">
-                                  <Amostra cor={cor(v)} />
-                                  <span className="min-w-0 flex-1 truncate">
-                                    {v.nome} <span className="text-xs text-zinc-500">{v.partido}</span>
+            {!uf && (
+              <div className="order-4">
+              <section className={cartao} aria-label="Governadores no 2º turno">
+                <h2 className="text-xs uppercase tracking-widest text-zinc-400">Governadores · 2º turno</h2>
+                {governadores2.length === 0 ? (
+                  <p className="mt-2 text-sm text-zinc-500">
+                    {governadores.dados ? 'Nenhum estado com 2º turno para governador.' : 'Buscando os estados com 2º turno para governador…'}
+                  </p>
+                ) : (
+                  <ul className="mt-2 divide-y divide-zinc-800 text-sm">
+                    {governadores2.map((l) => {
+                      const [a, b] = l.votos;
+                      return (
+                        <li key={l.chave}>
+                          <button
+                            type="button"
+                            onClick={() => escolher(l.chave)}
+                            className={`flex w-full flex-col gap-0.5 px-1 py-2 text-left hover:bg-zinc-800 ${uf === l.chave ? 'bg-zinc-800' : ''}`}
+                          >
+                            <span className="flex items-baseline justify-between gap-2">
+                              <span className="font-semibold">{l.nome}</span>
+                              <span className="text-xs tabular-nums text-zinc-500">{fmtPct(l.pctSecoes)} das seções</span>
+                            </span>
+                            {[a, b].map(
+                              (v) =>
+                                v && (
+                                  <span key={v.id} className="flex items-center gap-2">
+                                    <Amostra cor={cor(v)} />
+                                    <span className="min-w-0 flex-1 truncate">
+                                      {v.nome} <span className="text-xs text-zinc-500">{v.partido}</span>
+                                    </span>
+                                    <span className="tabular-nums">{fmtPct(pct(v, l))}</span>
                                   </span>
-                                  <span className="tabular-nums">{fmtPct(pct(v, l))}</span>
-                                </span>
-                              ),
-                          )}
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </section>
-            </div>
-            <div className="order-6">
-            {nacional && <GraficoEvolucao cargos={nacional.cargos} historico={historico} marcados={marcados} />}
-            </div>
+                                ),
+                            )}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </section>
+              </div>
+            )}
+            {!uf && (
+              <div className="order-6">
+              {nacional && <GraficoEvolucao cargos={nacional.cargos} historico={historico} marcados={marcados} />}
+              </div>
+            )}
             </div>
             <div className="contents xl:order-3 xl:flex xl:flex-col xl:gap-4">
             <div className="order-3 space-y-4">
@@ -516,7 +520,7 @@ export function SegundoTurno() {
               <>
                 <CartaoEstado uf={uf} nome={nomeUf(uf)} dados={detalhe.resumo} onFechar={() => escolher(null)} />
                 {detalhe.resumo && apurado(detalhe.resumo.depFederal) && (
-                  <PainelCamara titulo={nomeUf(uf)} locais={[detalhe.resumo.depFederal]} cor={corPartido} onBrasil={() => escolher(null)} contagem={null} />
+                  <PainelCamara titulo={nomeUf(uf)} locais={[detalhe.resumo.depFederal]} cor={corPartido} onBrasil={() => escolher(null)} contagem={null} compacto />
                 )}
               </>
             ) : (
