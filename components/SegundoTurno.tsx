@@ -1,13 +1,12 @@
 'use client';
 
 import type { Feature } from 'geojson';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { comoResultado } from '@/lib/brasil/analise';
 import type { EstadoSegundoTurno } from '@/lib/brasil/estado';
 import { corPartido } from '@/lib/cores';
 import { FAIXA_CANDIDATO, FAIXA_LIDER, FAIXA_LIDER_1T, EMPATE, SEM_VOTOS, pinturaDegrade } from '@/lib/degrade';
 import { eleitoDe, foiEleito } from '@/lib/eleito';
-import { compartilharImagem, gerarImagem } from '@/lib/compartilhar';
 import { projetar } from '@/lib/projecao';
 import { FAIXA_VARIACAO, pinturaVariacao } from '@/lib/variacao';
 import { fmtInt, fmtPct } from '@/lib/formato';
@@ -181,8 +180,6 @@ export function SegundoTurno() {
   // no degradê: candidato escolhido, ou quem lidera (null); ou a variação em relação ao 1º turno
   const [foco, setFoco] = useState<string | null>(null);
   const emVariacao = foco === VARIACAO;
-  const mapaRef = useRef<HTMLDivElement>(null);
-  const [aviso, setAviso] = useState<string | null>(null);
   const escolher = (k: string | null) => {
     setUfNaUrl(k);
     setMunSel(null);
@@ -271,30 +268,6 @@ export function SegundoTurno() {
   const lMun = apurado(munApurado) ? munApurado : munSel ? porMun1.get(munSel) : undefined;
 
   const candidatos2 = (nac2 ?? nac1)?.votos.slice(0, 2) ?? [];
-
-  async function compartilhar() {
-    const svg = mapaRef.current?.querySelector('svg');
-    if (!svg) return setAviso('O mapa ainda está carregando.');
-    try {
-      const base = apurado(nac2) ? nac2 : nac1;
-      const linhas = candidatos2.map((v) => {
-        const x = base?.votos.find((o) => o.id === v.id);
-        return { rotulo: `${v.nome} (${v.partido})`, valor: base && x ? `${fmtPct(pct(x, base))}${apurado(nac2) ? ` · ${fmtInt(x.votos)} votos` : ''}` : '—', cor: cor(v) };
-      });
-      const hora = presidente2.dados ? new Date(presidente2.dados.buscadoEm).toLocaleString('pt-BR') : '';
-      const blob = await gerarImagem({
-        svg,
-        titulo: 'Eleições 2026 · 2º turno',
-        subtitulo: apurado(nac2) ? `Presidente · ${fmtPct(nac2.pctSecoes)} das seções apuradas · ${hora}` : `Presidente · apuração não iniciada (placar do 1º turno) · ${hora}`,
-        linhas,
-        rodape: `${location.host}${location.pathname}${location.search}`,
-      });
-      const r = await compartilharImagem(blob, 'eleicoes-2-turno.png', 'Apuração do 2º turno — Eleições 2026', location.href);
-      setAviso(r === 'baixado' ? 'Imagem baixada.' : null);
-    } catch (e) {
-      setAviso(e instanceof Error ? e.message : 'Não foi possível gerar a imagem.');
-    }
-  }
   const erro = presidente2.erro && !presidente2.dados ? presidente2.erro : null;
   const aguardando = !!nac2 && nac2.total === 0;
   const eleitoPresidente = eleitoDe(nac2);
@@ -321,7 +294,7 @@ export function SegundoTurno() {
 
           <div className="grid items-start gap-4 xl:grid-cols-[320px_minmax(0,1fr)_380px]">
             <div className="order-1 xl:sticky xl:top-16 xl:order-2">
-              <section ref={mapaRef} className={cartao} aria-label="Mapa">
+              <section className={cartao} aria-label="Mapa">
                 <div className="mb-3 flex flex-wrap items-center gap-2">
                   <div className="flex flex-wrap rounded-full border border-zinc-800 bg-zinc-950 p-1" role="group" aria-label="Candidato do degradê">
                     <button type="button" aria-pressed={foco === null} onClick={() => setFoco(null)} className={pilula(foco === null)}>
@@ -340,13 +313,6 @@ export function SegundoTurno() {
                   </div>
                   <span className="ml-auto flex flex-wrap items-center gap-3 text-sm text-zinc-400">
                     <SeloAtualizacao prefixo="Presidente · 2º turno · " buscadoEm={presidente2.dados.buscadoEm} desatualizado={presidente2.dados.desatualizado} />
-                    <button
-                      type="button"
-                      onClick={compartilhar}
-                      className="rounded-full border border-zinc-800 px-3 py-1.5 text-zinc-200 hover:bg-zinc-800"
-                    >
-                      Compartilhar
-                    </button>
                     <button
                       type="button"
                       onClick={() => {
@@ -369,11 +335,6 @@ export function SegundoTurno() {
                       {fmtPct(pct(eleitoPresidente, nac2))} · {fmtInt(eleitoPresidente.votos)} votos
                     </span>
                   </span>
-                </p>
-              )}
-              {aviso && (
-                <p role="status" className="mb-2 text-xs text-zinc-400">
-                  {aviso}
                 </p>
               )}
               {aguardando && (
