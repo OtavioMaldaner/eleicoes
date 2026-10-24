@@ -13,6 +13,17 @@ export const CARGOS_BRASIL: Record<CargoBrasil, { nome: string; eleicao: string;
   depFederal: { nome: 'Câmara dos Deputados', eleicao: '6259', codigo: '6' },
 };
 
+// 2º turno: eleição federal 6258, estadual 6260. Só há segundo turno para presidente e governador.
+export type CargoSegundoTurno = 'presidente' | 'governador';
+export const CARGOS_SEGUNDO_TURNO: Record<CargoSegundoTurno, { nome: string; eleicao: string; codigo: string }> = {
+  presidente: { nome: 'Presidente', eleicao: '6258', codigo: '1' },
+  governador: { nome: 'Governador', eleicao: '6260', codigo: '3' },
+};
+
+export type Turno = 1 | 2;
+
+const dadosDoCargo = (cargo: CargoBrasil, turno: Turno) => (turno === 2 ? CARGOS_SEGUNDO_TURNO[cargo as CargoSegundoTurno] : CARGOS_BRASIL[cargo]);
+
 export type Brasil = { cargo: CargoBrasil; nacional: Local | null; estados: Local[]; semResposta: string[]; buscadoEm: string };
 
 const TEMPO_LIMITE_MS = 8_000;
@@ -24,8 +35,9 @@ export async function buscarLocal(
   nome: string,
   init?: RequestInit,
   municipio?: { cd: string; chave: string },
+  turno: Turno = 1,
 ): Promise<Local | null> {
-  const c = CARGOS_BRASIL[cargo];
+  const c = dadosDoCargo(cargo, turno);
   const cfg: CargoConfig = { chave: cargo, nome: c.nome, eleicao: c.eleicao, codigo: c.codigo, uf, proporcional: cargo === 'depFederal' };
   const url = `${BASE}/${c.eleicao}/dados/${uf}/${uf}${municipio?.cd ?? ''}-c${c.codigo.padStart(4, '0')}-e${c.eleicao.padStart(6, '0')}-u.json`;
   try {
@@ -40,10 +52,10 @@ export async function buscarLocal(
 }
 
 // Um cargo nos 27 estados; para presidente, também o total nacional.
-export async function buscarBrasil(cargo: CargoBrasil, init?: RequestInit): Promise<Brasil> {
+export async function buscarBrasil(cargo: CargoBrasil, init?: RequestInit, turno: Turno = 1): Promise<Brasil> {
   const [nacional, estados] = await Promise.all([
-    cargo === 'presidente' ? buscarLocal(cargo, 'br', 'Brasil', init) : null,
-    Promise.all(UFS.map((u) => buscarLocal(cargo, u.sigla, u.nome, init))),
+    cargo === 'presidente' ? buscarLocal(cargo, 'br', 'Brasil', init, undefined, turno) : null,
+    Promise.all(UFS.map((u) => buscarLocal(cargo, u.sigla, u.nome, init, undefined, turno))),
   ]);
   const recebidos = estados.filter((e): e is Local => e !== null);
   // Se o arquivo nacional falhar, o total é a soma dos estados recebidos.

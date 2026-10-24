@@ -1,6 +1,4 @@
-export type ChaveCargo = 'presidente' | 'presidenteBr' | 'governador' | 'senador' | 'depFederal' | 'depEstadual';
-
-export type Turno = 1 | 2;
+export type ChaveCargo = 'presidente' | 'governador' | 'senador' | 'depFederal' | 'depEstadual';
 
 export type CargoConfig = {
   chave: ChaveCargo;
@@ -9,7 +7,6 @@ export type CargoConfig = {
   codigo: string;
   uf: string;
   ufFoto?: string; // pasta das fotos, quando difere de `uf`
-  nacional?: boolean; // total do país, mesmo com um município escolhido
   proporcional: boolean;
 };
 

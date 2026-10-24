@@ -3,13 +3,13 @@
 import type { Feature } from 'geojson';
 import { useEffect, useState } from 'react';
 import type { CargoBrasil } from './brasil/analise';
-import type { Estado, Municipios } from './brasil/estado';
+import type { Estado, EstadoSegundoTurno, Municipios } from './brasil/estado';
 
 const INTERVALO_ESTADO_MS = 30_000;
 const INTERVALO_MUNICIPIOS_MS = 90_000;
 
 // Repete uma busca enquanto a chave não mudar; devolve o dado só se for da chave atual.
-function usePeriodico<T>(chave: string | null, url: string | null, intervalo: number, tempoLimite: number) {
+export function usePeriodico<T>(chave: string | null, url: string | null, intervalo: number, tempoLimite: number) {
   const [estado, setEstado] = useState<{ chave: string | null; dados: T | null; erro: string | null }>({ chave: null, dados: null, erro: null });
   useEffect(() => {
     if (!chave || !url) return;
@@ -66,4 +66,9 @@ export function useEstado(uf: string | null, cargo: CargoBrasil) {
     erroMunicipios: municipios.erro,
     contornos: geo && geo.uf === uf ? geo.features : null,
   };
+}
+
+// Um estado na tela do 2º turno: 2º turno ao vivo e 1º turno encerrado.
+export function useEstadoSegundoTurno(uf: string | null) {
+  return usePeriodico<EstadoSegundoTurno>(uf, uf && `/api/segundo-turno/estado?uf=${uf}`, INTERVALO_ESTADO_MS, 15_000).dados;
 }

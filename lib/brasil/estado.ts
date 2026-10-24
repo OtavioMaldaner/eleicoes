@@ -51,3 +51,30 @@ export async function buscarMunicipios(uf: string, cargo: CargoBrasil, init?: Re
   const municipios = resultados.filter((l): l is Local => l !== null);
   return { uf, cargo, municipios, falhas: lista.length - municipios.length, buscadoEm: new Date().toISOString() };
 }
+
+// Um estado de perto para a tela do 2º turno: o 2º turno de presidente e governador (ao vivo)
+// e o 1º turno de tudo, que já terminou. Governador do 2º turno é null onde não há disputa.
+export type EstadoSegundoTurno = {
+  uf: string;
+  presidente2: Local | null;
+  governador2: Local | null;
+  presidente1: Local | null;
+  governador1: Local | null;
+  senador: Local | null;
+  depFederal: Local | null;
+  buscadoEm: string;
+};
+
+export async function buscarEstadoSegundoTurno(uf: string, init?: RequestInit): Promise<EstadoSegundoTurno> {
+  const nome = UFS.find((u) => u.sigla === uf)?.nome ?? uf.toUpperCase();
+  const sem = undefined;
+  const [presidente2, governador2, presidente1, governador1, senador, depFederal] = await Promise.all([
+    buscarLocal('presidente', uf, nome, init, sem, 2),
+    buscarLocal('governador', uf, nome, init, sem, 2),
+    buscarLocal('presidente', uf, nome, init),
+    buscarLocal('governador', uf, nome, init),
+    buscarLocal('senador', uf, nome, init),
+    buscarLocal('depFederal', uf, nome, init),
+  ]);
+  return { uf, presidente2, governador2, presidente1, governador1, senador, depFederal, buscadoEm: new Date().toISOString() };
+}

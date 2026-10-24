@@ -26,12 +26,15 @@ function Foto({ cargo, uf, v, cor, tamanho = 'h-9 w-9' }: { cargo: CargoBrasil; 
   );
 }
 
-function Linha({ cargo, uf, v, l, cor }: { cargo: CargoBrasil; uf: string; v: VotoCand; l: Local; cor: Cor }) {
+export function Linha({ cargo, uf, v, l, cor, selo }: { cargo: CargoBrasil; uf: string; v: VotoCand; l: Local; cor: Cor; selo?: string }) {
   return (
     <li className="flex items-center gap-2.5">
       <Foto cargo={cargo} uf={uf} v={v} cor={cor(cargo, v)} />
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm">{v.nome}</span>
+        <span className="block truncate text-sm">
+          {v.nome}
+          {selo && <span className="ml-1.5 text-[10px] font-semibold uppercase text-emerald-300">{selo}</span>}
+        </span>
         <span className="block text-xs text-zinc-400">
           {v.partido} · {v.numero}
         </span>
@@ -42,7 +45,7 @@ function Linha({ cargo, uf, v, l, cor }: { cargo: CargoBrasil; uf: string; v: Vo
 }
 
 // Dois candidatos frente a frente, com uma barra dividida entre eles.
-function Duelo({
+export function Duelo({
   cargo,
   uf,
   a,
