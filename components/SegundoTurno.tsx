@@ -5,13 +5,17 @@ import { useEffect, useMemo, useState } from 'react';
 import { comoResultado } from '@/lib/brasil/analise';
 import type { EstadoSegundoTurno } from '@/lib/brasil/estado';
 import { corPartido } from '@/lib/cores';
+import { FAIXA_CANDIDATO, FAIXA_LIDER, FAIXA_LIDER_1T, EMPATE, SEM_VOTOS, pinturaDegrade } from '@/lib/degrade';
+import { eleitoDe, foiEleito } from '@/lib/eleito';
 import { fmtInt, fmtPct } from '@/lib/formato';
 import type { Local, VotoCand } from '@/lib/mapas/agregar';
 import { useBrasil } from '@/lib/useBrasil';
+import { useEstadoNaUrl } from '@/lib/useEstadoNaUrl';
 import { useEstadoSegundoTurno } from '@/lib/useEstado';
 import { adicionar, useHistorico } from '@/lib/useHistorico';
 import { criarPonto } from '@/lib/historico';
 import { useMarcados } from '@/lib/useMarcados';
+import { BASE } from '@/lib/tse/config';
 import { Duelo, Linha } from './CartaoEstado';
 import { AnaliseRegioes } from './AnaliseRegioes';
 import { DicaEstado } from './DicaEstado';
@@ -21,26 +25,29 @@ import { MapaBrasil, type Pintura } from './MapaBrasil';
 import { MapaCoropletico } from './MapaCoropletico';
 import { PainelCamara } from './PainelCamara';
 
-const SEM_VOTOS = '#3f3f46';
-const EMPATE = '#71717a';
-const OPACIDADE_1T = 0.4;
-// Degradê: a cor vai do quase apagado ao pleno entre estes percentuais.
-const FAIXA_LIDER = [50, 80] as const; // quem lidera num 2º turno tem 50% ou mais
-const FAIXA_CANDIDATO = [15, 80] as const;
-const FAIXA_LIDER_1T = [30, 70] as const; // no 1º turno o líder tem bem menos de 50%
-const intensidade = (p: number, [de, ate]: readonly [number, number]) => 0.12 + 0.88 * Math.min(Math.max((p - de) / (ate - de), 0), 1);
 const PRIMEIRO_TURNO_FINAL_MS = 10 * 60_000; // o 1º turno já acabou: basta rever de vez em quando
 
 const pilula = (ativa: boolean) =>
   `rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${ativa ? 'bg-zinc-100 text-zinc-950' : 'text-zinc-300 hover:bg-zinc-800 hover:text-white'}`;
 const chaveMunicipio = (f: Feature) => String(f.properties?.codarea ?? '');
 const cartao = 'rounded-2xl border border-zinc-800 bg-zinc-900 p-4';
-// `eleito` do TSE também marca quem vai ao 2º turno; só a situação distingue.
-const foiEleito = (v: VotoCand) => /^eleito/i.test(v.situacao ?? '');
 const apurado = (l: Local | null | undefined): l is Local => !!l && l.total > 0;
 const pct = (v: VotoCand, l: Local) => (l.total ? (v.votos / l.total) * 100 : 0);
 const cor = (v: VotoCand) => corPartido(v.partido);
 const corDe = (_cargo: unknown, v: VotoCand) => cor(v);
+
+function FotoEleito({ id, cor }: { id: string; cor: string }) {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={`${BASE}/6257/fotos/br/${id}.jpeg`}
+      alt=""
+      className="h-11 w-11 shrink-0 rounded-full bg-zinc-800 object-cover object-top"
+      style={{ boxShadow: `0 0 0 2px #18181b, 0 0 0 4px ${cor}` }}
+      onError={(e) => (e.currentTarget.style.visibility = 'hidden')}
+    />
+  );
+}
 
 function Amostra({ cor }: { cor: string }) {
   return <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: cor }} />;
@@ -127,7 +134,14 @@ function CartaoEstado({ uf, nome, dados, onFechar }: { uf: string; nome: string;
             <>
               <Secao titulo="Governador · 2º turno" direita={apurado(gov2) ? `${fmtPct(gov2.pctSecoes)} das seções` : undefined}>
                 {apurado(gov2) ? (
-                  <Disputa cargo="governador" uf={uf} l={gov2} />
+                  <>
+                    {eleitoDe(gov2) && (
+                      <p className="mb-2 rounded-md bg-emerald-950/50 px-2 py-1 text-xs text-emerald-200">
+                        Eleito no 2º turno: <span className="font-semibold">{eleitoDe(gov2)!.nome}</span>
+                      </p>
+                    )}
+                    <Disputa cargo="governador" uf={uf} l={gov2} />
+                  </>
                 ) : gov2 ? (
                   <Aviso>Ainda sem votos apurados no 2º turno.</Aviso>
                 ) : (
@@ -150,7 +164,7 @@ function CartaoEstado({ uf, nome, dados, onFechar }: { uf: string; nome: string;
 }
 
 export function SegundoTurno() {
-  const [uf, setUf] = useState<string | null>(null);
+  const [uf, setUfNaUrl] = useEstadoNaUrl();
   const presidente2 = useBrasil('presidente', 2);
   const presidente1 = useBrasil('presidente', 1, PRIMEIRO_TURNO_FINAL_MS, true);
   const governadores = useBrasil('governador', 2);
@@ -158,7 +172,7 @@ export function SegundoTurno() {
   const [munSel, setMunSel] = useState<string | null>(null);
   const [foco, setFoco] = useState<string | null>(null); // no degradê: candidato escolhido, ou quem lidera
   const escolher = (k: string | null) => {
-    setUf(k);
+    setUfNaUrl(k);
     setMunSel(null);
   };
   const { marcados } = useMarcados();
@@ -207,23 +221,7 @@ export function SegundoTurno() {
   const nomeUf = (k: string) => por2.get(k)?.nome ?? por1.get(k)?.nome ?? k.toUpperCase();
 
   // 2º turno quando já há votos; senão o líder do 1º turno, em tom suave.
-  function pinturaDe(l2: Local | undefined, l1: Local | undefined): Pintura {
-    // Sem votos no 2º turno, o degradê usa os percentuais do 1º turno para já mostrar onde cada um é forte.
-    const base = apurado(l2) ? l2 : apurado(l1) ? l1 : undefined;
-    if (base) {
-      const alvo = foco ? candidatos2.find((c) => c.id === foco) : undefined;
-      if (alvo) {
-        const v = base.votos.find((x) => x.id === alvo.id);
-        return { fill: cor(alvo), opacidade: intensidade(v ? pct(v, base) : 0, FAIXA_CANDIDATO) };
-      }
-      return base.lider
-        ? { fill: cor(base.votos[0]), opacidade: intensidade(pct(base.votos[0], base), base === l2 ? FAIXA_LIDER : FAIXA_LIDER_1T) }
-        : { fill: EMPATE, opacidade: 1 };
-    }
-    if (apurado(l2)) return { fill: l2.lider ? cor(l2.votos[0]) : EMPATE, opacidade: 1 };
-    if (apurado(l1) && l1.lider) return { fill: cor(l1.votos[0]), opacidade: OPACIDADE_1T };
-    return { fill: SEM_VOTOS, opacidade: 1 };
-  }
+  const pinturaDe = (l2: Local | undefined, l1: Local | undefined): Pintura => pinturaDegrade(l2, l1, foco, candidatos2, cor);
   function descreve(l2: Local | undefined, l1: Local | undefined, nome: string) {
     if (apurado(l2)) return l2.lider ? `${nome}: ${l2.votos[0].nome} lidera com ${fmtPct(pct(l2.votos[0], l2))} (2º turno)` : `${nome}: empate (2º turno)`;
     if (apurado(l1) && l1.lider) return `${nome}: 2º turno sem votos apurados; no 1º turno, ${l1.votos[0].nome} liderou`;
@@ -262,6 +260,7 @@ export function SegundoTurno() {
   const candidatos2 = (nac2 ?? nac1)?.votos.slice(0, 2) ?? [];
   const erro = presidente2.erro && !presidente2.dados ? presidente2.erro : null;
   const aguardando = !!nac2 && nac2.total === 0;
+  const eleitoPresidente = eleitoDe(nac2);
   const semVotos2 = !nac2 || nac2.total === 0;
   const estadosApurados = [...por2.values()].filter((l) => l.total > 0).length;
 
@@ -310,7 +309,19 @@ export function SegundoTurno() {
                     </button>
                   </span>
                 </div>
-                {aguardando && (
+                {eleitoPresidente && nac2 && (
+                <p role="status" className="mb-2 flex flex-wrap items-center gap-3 rounded-lg border border-emerald-500/60 bg-emerald-950/40 px-4 py-3 text-emerald-100">
+                  <FotoEleito id={eleitoPresidente.id} cor={cor(eleitoPresidente)} />
+                  <span>
+                    <span className="block text-xs uppercase tracking-widest text-emerald-300">Presidente eleito</span>
+                    <span className="text-lg font-semibold">{eleitoPresidente.nome}</span>
+                    <span className="ml-2 text-sm tabular-nums">
+                      {fmtPct(pct(eleitoPresidente, nac2))} · {fmtInt(eleitoPresidente.votos)} votos
+                    </span>
+                  </span>
+                </p>
+              )}
+              {aguardando && (
                   <p role="status" className="mb-2 rounded-lg border border-amber-500/60 bg-amber-950/40 px-3 py-2 text-xs text-amber-100">
                     Apuração do 2º turno ainda não iniciada: o mapa mostra o líder de cada lugar no 1º turno e se atualiza sozinho a cada 30s.
                   </p>
@@ -494,6 +505,7 @@ export function SegundoTurno() {
                                     <Amostra cor={cor(v)} />
                                     <span className="min-w-0 flex-1 truncate">
                                       {v.nome} <span className="text-xs text-zinc-500">{v.partido}</span>
+                                      {foiEleito(v) && <span className="ml-1.5 text-[10px] font-semibold uppercase text-emerald-300">eleito</span>}
                                     </span>
                                     <span className="tabular-nums">{fmtPct(pct(v, l))}</span>
                                   </span>

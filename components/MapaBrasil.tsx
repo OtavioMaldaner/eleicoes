@@ -50,6 +50,12 @@ export function MapaBrasil({ features, pintura, rotulo, selecionado, onSeleciona
     if (dica && r) setSobre({ uf, x: e.clientX - r.left, y: e.clientY - r.top });
   };
   const sair = () => setSobre(null);
+  // Teclado: o foco abre o mesmo resumo do mouse, no centro do estado.
+  const focar = (uf: string) => (e: React.FocusEvent<SVGElement>) => {
+    const r = caixa.current?.getBoundingClientRect();
+    const c = e.currentTarget.getBoundingClientRect();
+    if (dica && r) setSobre({ uf, x: c.x + c.width / 2 - r.left, y: c.y + c.height / 2 - r.top });
+  };
   useEffect(() => {
     const el = caixa.current;
     if (!el) return;
@@ -84,6 +90,9 @@ export function MapaBrasil({ features, pintura, rotulo, selecionado, onSeleciona
 
   const xEtiqueta = largura - MARGEM_ETIQUETAS + 18;
 
+  // Em tela estreita (celular) a dica não pode ser maior que o próprio mapa.
+  const larguraDica = Math.min(LARGURA_DICA, Math.max(largura - 8, 0));
+
   return (
     <div ref={caixa} className="relative" style={{ minHeight: altura || undefined }}>
       {largura > 0 && (
@@ -100,7 +109,18 @@ export function MapaBrasil({ features, pintura, rotulo, selecionado, onSeleciona
                 strokeWidth={1}
                 strokeLinejoin="round"
                 className="cursor-pointer"
+                tabIndex={0}
+                role="button"
+                aria-label={rotulo(f.uf)}
                 onClick={() => onSelecionar(f.uf)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onSelecionar(f.uf);
+                  }
+                }}
+                onFocus={focar(f.uf)}
+                onBlur={sair}
                 onPointerEnter={passar(f.uf)}
                 onPointerMove={passar(f.uf)}
                 onPointerLeave={sair}
@@ -186,9 +206,9 @@ export function MapaBrasil({ features, pintura, rotulo, selecionado, onSeleciona
           role="tooltip"
           className="pointer-events-none absolute z-10 rounded-xl border border-zinc-700 bg-zinc-950/95 p-3.5 text-sm shadow-2xl backdrop-blur"
           style={{
-            width: LARGURA_DICA,
+            width: larguraDica,
             top: Math.min(Math.max(sobre.y - 12, 0), Math.max(altura - ALTURA_DICA, 0)),
-            left: sobre.x + 16 + LARGURA_DICA > largura ? Math.max(sobre.x - 16 - LARGURA_DICA, 0) : sobre.x + 16,
+            left: sobre.x + 16 + larguraDica > largura ? Math.max(sobre.x - 16 - larguraDica, 0) : sobre.x + 16,
           }}
         >
           {dica(sobre.uf)}

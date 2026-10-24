@@ -51,6 +51,9 @@ export function MapaCoropletico({ titulo, features, chaveDe, projecao, proporcao
     return features.map((f, i) => ({ id: `${chaveDe(f)}-${i}`, chave: chaveDe(f), d: caminho(f) ?? '' }));
   }, [features, chaveDe, projecao, largura, altura]);
 
+  // Em tela estreita (celular) a dica não pode ser maior que o próprio mapa.
+  const larguraDica = Math.min(LARGURA_DICA, Math.max(largura - 8, 0));
+
   return (
     <div ref={caixa} className="relative" style={{ minHeight: altura || undefined }}>
       {largura > 0 && (
@@ -89,9 +92,9 @@ export function MapaCoropletico({ titulo, features, chaveDe, projecao, proporcao
           role="tooltip"
           className="pointer-events-none absolute z-10 rounded-xl border border-zinc-700 bg-zinc-950/95 p-3.5 text-sm shadow-2xl backdrop-blur"
           style={{
-            width: LARGURA_DICA,
+            width: larguraDica,
             top: Math.min(Math.max(sobre.y - 12, 0), Math.max(altura - ALTURA_DICA, 0)),
-            left: sobre.x + 16 + LARGURA_DICA > largura ? Math.max(sobre.x - 16 - LARGURA_DICA, 0) : sobre.x + 16,
+            left: sobre.x + 16 + larguraDica > largura ? Math.max(sobre.x - 16 - larguraDica, 0) : sobre.x + 16,
           }}
         >
           {dica(sobre.chave)}
