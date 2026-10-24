@@ -5,6 +5,7 @@ import { series } from '@/lib/historico';
 import type { Local, VotoCand } from '@/lib/mapas/agregar';
 import { BASE } from '@/lib/tse/config';
 import { useHistoricoLido } from '@/lib/useHistorico';
+import { variacao } from '@/lib/variacao';
 
 const SUPERFICIE = '#09090b';
 const L = 306;
@@ -164,6 +165,20 @@ export function DicaEstado({ uf, nome, sub, escopo = `2t:uf:${uf}`, clique = 'Cl
 
       {l1 && l1.total > 0 && (
         <p className="text-xs text-zinc-400">
+          {(() => {
+            const v = apurado ? variacao(l2, l1, finalistas) : null;
+            return v ? (
+              <span className="mb-1 block text-zinc-300">
+                Variação vs 1º turno:{' '}
+                {finalistas.map((f, i) => (
+                  <span key={f.id}>
+                    {i > 0 && ' · '}
+                    {f.nome.split(' ')[0]} <span className="tabular-nums">{`${v.deltas[f.id] >= 0 ? '+' : ''}${v.deltas[f.id].toFixed(1).replace('.', ',')} pts`}</span>
+                  </span>
+                ))}
+              </span>
+            ) : null;
+          })()}
           1º turno:{' '}
           {finalistas.map((f, i) => {
             const v = porId(l1, f.id);

@@ -1,17 +1,20 @@
 'use client';
 
 import type { Feature } from 'geojson';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { comoResultado } from '@/lib/brasil/analise';
 import type { EstadoSegundoTurno } from '@/lib/brasil/estado';
 import { corPartido } from '@/lib/cores';
 import { FAIXA_CANDIDATO, FAIXA_LIDER, FAIXA_LIDER_1T, EMPATE, SEM_VOTOS, pinturaDegrade } from '@/lib/degrade';
 import { eleitoDe, foiEleito } from '@/lib/eleito';
+import { compartilharImagem, gerarImagem } from '@/lib/compartilhar';
+import { projetar } from '@/lib/projecao';
+import { FAIXA_VARIACAO, pinturaVariacao } from '@/lib/variacao';
 import { fmtInt, fmtPct } from '@/lib/formato';
 import type { Local, VotoCand } from '@/lib/mapas/agregar';
 import { useBrasil } from '@/lib/useBrasil';
 import { useEstadoNaUrl } from '@/lib/useEstadoNaUrl';
-import { useEstadoSegundoTurno } from '@/lib/useEstado';
+import { useCapitais, useEstadoSegundoTurno } from '@/lib/useEstado';
 import { adicionar, useHistorico } from '@/lib/useHistorico';
 import { criarPonto } from '@/lib/historico';
 import { useMarcados } from '@/lib/useMarcados';
@@ -20,16 +23,20 @@ import { Duelo, Linha } from './CartaoEstado';
 import { AnaliseRegioes } from './AnaliseRegioes';
 import { DicaEstado } from './DicaEstado';
 import { SeloAtualizacao } from './SeloAtualizacao';
+import { UltimasAtualizacoes } from './UltimasAtualizacoes';
 import { GraficoEvolucao } from './GraficoEvolucao';
 import { MapaBrasil, type Pintura } from './MapaBrasil';
 import { MapaCoropletico } from './MapaCoropletico';
 import { PainelCamara } from './PainelCamara';
+import { CartaoProjecao } from './CartaoProjecao';
+import { PainelCapitais } from './PainelCapitais';
 
 const PRIMEIRO_TURNO_FINAL_MS = 10 * 60_000; // o 1º turno já acabou: basta rever de vez em quando
 
 const pilula = (ativa: boolean) =>
   `rounded-full px-3 py-1.5 text-sm font-medium transition-colors sm:px-3.5 ${ativa ? 'bg-zinc-100 text-zinc-950' : 'text-zinc-300 hover:bg-zinc-800 hover:text-white'}`;
 const chaveMunicipio = (f: Feature) => String(f.properties?.codarea ?? '');
+const VARIACAO = '__variacao';
 const cartao = 'rounded-2xl border border-zinc-800 bg-zinc-900 p-4';
 const apurado = (l: Local | null | undefined): l is Local => !!l && l.total > 0;
 const pct = (v: VotoCand, l: Local) => (l.total ? (v.votos / l.total) * 100 : 0);
@@ -169,8 +176,13 @@ export function SegundoTurno() {
   const presidente1 = useBrasil('presidente', 1, PRIMEIRO_TURNO_FINAL_MS, true);
   const governadores = useBrasil('governador', 2);
   const detalhe = useEstadoSegundoTurno(uf);
+  const capitais = useCapitais(!uf);
   const [munSel, setMunSel] = useState<string | null>(null);
-  const [foco, setFoco] = useState<string | null>(null); // no degradê: candidato escolhido, ou quem lidera
+  // no degradê: candidato escolhido, ou quem lidera (null); ou a variação em relação ao 1º turno
+  const [foco, setFoco] = useState<string | null>(null);
+  const emVariacao = foco === VARIACAO;
+  const mapaRef = useRef<HTMLDivElement>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
   const escolher = (k: string | null) => {
     setUfNaUrl(k);
     setMunSel(null);
@@ -221,7 +233,8 @@ export function SegundoTurno() {
   const nomeUf = (k: string) => por2.get(k)?.nome ?? por1.get(k)?.nome ?? k.toUpperCase();
 
   // 2º turno quando já há votos; senão o líder do 1º turno, em tom suave.
-  const pinturaDe = (l2: Local | undefined, l1: Local | undefined): Pintura => pinturaDegrade(l2, l1, foco, candidatos2, cor);
+  const pinturaDe = (l2: Local | undefined, l1: Local | undefined): Pintura =>
+    emVariacao ? pinturaVariacao(l2, l1, candidatos2, cor) : pinturaDegrade(l2, l1, foco, candidatos2, cor);
   function descreve(l2: Local | undefined, l1: Local | undefined, nome: string) {
     if (apurado(l2)) return l2.lider ? `${nome}: ${l2.votos[0].nome} lidera com ${fmtPct(pct(l2.votos[0], l2))} (2º turno)` : `${nome}: empate (2º turno)`;
     if (apurado(l1) && l1.lider) return `${nome}: 2º turno sem votos apurados; no 1º turno, ${l1.votos[0].nome} liderou`;
@@ -258,10 +271,35 @@ export function SegundoTurno() {
   const lMun = apurado(munApurado) ? munApurado : munSel ? porMun1.get(munSel) : undefined;
 
   const candidatos2 = (nac2 ?? nac1)?.votos.slice(0, 2) ?? [];
+
+  async function compartilhar() {
+    const svg = mapaRef.current?.querySelector('svg');
+    if (!svg) return setAviso('O mapa ainda está carregando.');
+    try {
+      const base = apurado(nac2) ? nac2 : nac1;
+      const linhas = candidatos2.map((v) => {
+        const x = base?.votos.find((o) => o.id === v.id);
+        return { rotulo: `${v.nome} (${v.partido})`, valor: base && x ? `${fmtPct(pct(x, base))}${apurado(nac2) ? ` · ${fmtInt(x.votos)} votos` : ''}` : '—', cor: cor(v) };
+      });
+      const hora = presidente2.dados ? new Date(presidente2.dados.buscadoEm).toLocaleString('pt-BR') : '';
+      const blob = await gerarImagem({
+        svg,
+        titulo: 'Eleições 2026 · 2º turno',
+        subtitulo: apurado(nac2) ? `Presidente · ${fmtPct(nac2.pctSecoes)} das seções apuradas · ${hora}` : `Presidente · apuração não iniciada (placar do 1º turno) · ${hora}`,
+        linhas,
+        rodape: `${location.host}${location.pathname}${location.search}`,
+      });
+      const r = await compartilharImagem(blob, 'eleicoes-2-turno.png', 'Apuração do 2º turno — Eleições 2026', location.href);
+      setAviso(r === 'baixado' ? 'Imagem baixada.' : null);
+    } catch (e) {
+      setAviso(e instanceof Error ? e.message : 'Não foi possível gerar a imagem.');
+    }
+  }
   const erro = presidente2.erro && !presidente2.dados ? presidente2.erro : null;
   const aguardando = !!nac2 && nac2.total === 0;
   const eleitoPresidente = eleitoDe(nac2);
   const semVotos2 = !nac2 || nac2.total === 0;
+  const projecao = candidatos2.length === 2 ? projetar(presidente2.dados?.estados ?? [], presidente1.dados?.estados ?? [], candidatos2[0].id, candidatos2[1].id) : null;
   const estadosApurados = [...por2.values()].filter((l) => l.total > 0).length;
 
   return (
@@ -283,7 +321,7 @@ export function SegundoTurno() {
 
           <div className="grid items-start gap-4 xl:grid-cols-[320px_minmax(0,1fr)_380px]">
             <div className="order-1 xl:sticky xl:top-16 xl:order-2">
-              <section className={cartao} aria-label="Mapa">
+              <section ref={mapaRef} className={cartao} aria-label="Mapa">
                 <div className="mb-3 flex flex-wrap items-center gap-2">
                   <div className="flex flex-wrap rounded-full border border-zinc-800 bg-zinc-950 p-1" role="group" aria-label="Candidato do degradê">
                     <button type="button" aria-pressed={foco === null} onClick={() => setFoco(null)} className={pilula(foco === null)}>
@@ -295,9 +333,20 @@ export function SegundoTurno() {
                         <span className="hidden sm:inline">{v.nome}</span>
                       </button>
                     ))}
+                    <button type="button" aria-pressed={emVariacao} onClick={() => setFoco(VARIACAO)} className={pilula(emVariacao)}>
+                      <span className="sm:hidden">Variação</span>
+                      <span className="hidden sm:inline">Variação vs 1º turno</span>
+                    </button>
                   </div>
                   <span className="ml-auto flex flex-wrap items-center gap-3 text-sm text-zinc-400">
                     <SeloAtualizacao prefixo="Presidente · 2º turno · " buscadoEm={presidente2.dados.buscadoEm} desatualizado={presidente2.dados.desatualizado} />
+                    <button
+                      type="button"
+                      onClick={compartilhar}
+                      className="rounded-full border border-zinc-800 px-3 py-1.5 text-zinc-200 hover:bg-zinc-800"
+                    >
+                      Compartilhar
+                    </button>
                     <button
                       type="button"
                       onClick={() => {
@@ -320,6 +369,11 @@ export function SegundoTurno() {
                       {fmtPct(pct(eleitoPresidente, nac2))} · {fmtInt(eleitoPresidente.votos)} votos
                     </span>
                   </span>
+                </p>
+              )}
+              {aviso && (
+                <p role="status" className="mb-2 text-xs text-zinc-400">
+                  {aviso}
                 </p>
               )}
               {aguardando && (
@@ -394,18 +448,19 @@ export function SegundoTurno() {
                     </li>
                   ))}
                   <li className="flex basis-full flex-wrap items-center gap-x-4 gap-y-1">
-                    {(foco ? candidatos2.filter((v) => v.id === foco) : candidatos2).map((v) => {
-                      const [de, ate] = foco ? FAIXA_CANDIDATO : semVotos2 ? FAIXA_LIDER_1T : FAIXA_LIDER;
+                    {(foco && !emVariacao ? candidatos2.filter((v) => v.id === foco) : candidatos2).map((v) => {
+                      const [de, ate] = emVariacao ? FAIXA_VARIACAO : foco ? FAIXA_CANDIDATO : semVotos2 ? FAIXA_LIDER_1T : FAIXA_LIDER;
+                      const sinal = emVariacao ? '+' : '';
                       return (
                         <span key={v.id} className="flex items-center gap-1.5">
-                          <span className="tabular-nums text-zinc-400">{de}%</span>
+                          <span className="tabular-nums text-zinc-400">{emVariacao ? `${sinal}${de}` : `${de}%`}</span>
                           <span
                             className="h-2.5 w-24 rounded"
                             style={{ background: `linear-gradient(to right, ${cor(v)}1f, ${cor(v)})` }}
                             role="img"
                             aria-label={`Escala de ${v.nome}: de ${de}% a ${ate}% dos votos`}
                           />
-                          <span className="tabular-nums text-zinc-400">{ate}%</span>
+                          <span className="tabular-nums text-zinc-400">{emVariacao ? `${sinal}${ate} pts` : `${ate}%`}</span>
                           <span className="text-zinc-300">{v.nome}</span>
                         </span>
                       );
@@ -419,10 +474,12 @@ export function SegundoTurno() {
                   </li>
                 </ul>
                 <p className="mt-2 text-xs text-zinc-500">
-                  {foco
-                    ? 'Quanto mais forte a cor, maior o percentual do candidato escolhido no local. '
-                    : 'A cor é a de quem lidera; quanto mais forte, maior o percentual do líder no local. '}
-                  {semVotos2 && 'Enquanto o 2º turno não tem votos, o degradê usa os percentuais do 1º turno. '}
+                  {emVariacao
+                    ? 'A cor é a de quem mais subiu em relação ao 1º turno (em pontos percentuais dos votos); quanto mais forte, maior a subida. Fica cinza onde o 2º turno ainda não tem votos. '
+                    : foco
+                      ? 'Quanto mais forte a cor, maior o percentual do candidato escolhido no local. '
+                      : 'A cor é a de quem lidera; quanto mais forte, maior o percentual do líder no local. '}
+                  {semVotos2 && !emVariacao && 'Enquanto o 2º turno não tem votos, o degradê usa os percentuais do 1º turno. '}
                   Enquanto não há votos, aparece em tom suave o líder do 1º turno. Clique num estado para ver as cidades, o presidente, o governador, o senado e os deputados.
                 </p>
               </section>
@@ -519,6 +576,19 @@ export function SegundoTurno() {
                   </ul>
                 )}
               </section>
+              </div>
+            )}
+            {!uf && (
+              <div className="order-2">
+                <CartaoProjecao projecao={projecao} pctSecoes={nac2?.pctSecoes ?? 0} finalistas={candidatos2} cor={cor} />
+              </div>
+            )}
+            <div className="order-5">
+              <UltimasAtualizacoes eventos={presidente2.eventos} onUf={escolher} />
+            </div>
+            {!uf && (
+              <div className="order-5">
+                <PainelCapitais dados={capitais} finalistas={candidatos2} cor={cor} onUf={escolher} />
               </div>
             )}
             {!uf && (

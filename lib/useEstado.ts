@@ -3,6 +3,7 @@
 import type { Feature } from 'geojson';
 import { useEffect, useState } from 'react';
 import type { CargoBrasil } from './brasil/analise';
+import type { Capitais } from './brasil/capitais';
 import type { Estado, EstadoSegundoTurno, Municipios } from './brasil/estado';
 import { aoVivo } from './aoVivo';
 
@@ -100,4 +101,9 @@ export function useEstadoSegundoTurno(uf: string | null) {
     erroMunicipios: municipios2.erro,
     contornos: useContornos(uf),
   };
+}
+
+// Presidente nas capitais, 2º turno ao vivo e 1º turno de referência.
+export function useCapitais(ativo = true) {
+  return usePeriodico<Capitais>(ativo ? 'capitais' : null, ativo ? '/api/capitais' : null, INTERVALO_ESTADO_MS, 20_000).dados;
 }
