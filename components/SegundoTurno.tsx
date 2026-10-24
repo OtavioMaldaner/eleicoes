@@ -180,6 +180,14 @@ export function SegundoTurno() {
     for (const l of d.estados) adicionar(`2t:uf:${l.chave}`, criarPonto({ cargos: [comoResultado(l)], buscadoEm: d.buscadoEm }, marcados, agora));
   }, [presidente2.dados, marcados]);
 
+  // Curva de cada município do estado aberto, só em memória (são centenas de locais).
+  useEffect(() => {
+    const m = detalhe.municipios2;
+    if (!m) return;
+    const agora = Date.now();
+    for (const l of m.municipios) adicionar(`2t:mun:${l.chave}`, criarPonto({ cargos: [comoResultado(l)], buscadoEm: m.buscadoEm }, marcados, agora), false);
+  }, [detalhe.municipios2, marcados]);
+
   const [contornos, setContornos] = useState<Feature[]>([]);
   useEffect(() => {
     let vivo = true;
@@ -221,6 +229,19 @@ export function SegundoTurno() {
     return `${nome}: sem votos apurados`;
   }
   const pintura = (k: string) => pinturaDe(por2.get(k), por1.get(k));
+  const dicaMun = (k: string) => (
+    <DicaEstado
+      uf={uf ?? ''}
+      nome={(porMun2.get(k) ?? porMun1.get(k))?.nome ?? 'Município'}
+      sub={(uf ?? '').toUpperCase()}
+      escopo={`2t:mun:${k}`}
+      clique="Dados do município, atualizados a cada 90s."
+      l2={porMun2.get(k)}
+      l1={porMun1.get(k)}
+      finalistas={candidatos2}
+      cor={cor}
+    />
+  );
   const governador2 = new Map(governadores2.map((l) => [l.chave, l]));
 
   const dicaEstado = (k: string) => (
@@ -416,6 +437,7 @@ export function SegundoTurno() {
                       rotulo={rotuloMun}
                       selecionado={munSel}
                       onSelecionar={setMunSel}
+                      dica={dicaMun}
                     />
                   </div>
                 ) : (

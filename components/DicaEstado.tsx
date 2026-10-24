@@ -28,8 +28,8 @@ function Foto({ eleicao, pasta, id, cor, tamanho }: { eleicao: string; pasta: st
 }
 
 // Linhas do percentual de cada candidato ao longo da apuração, registradas enquanto o site fica aberto.
-function Evolucao({ uf, candidatos, cor }: { uf: string; candidatos: VotoCand[]; cor: (v: VotoCand) => string }) {
-  const hist = useHistoricoLido(`2t:uf:${uf}`);
+function Evolucao({ escopo, candidatos, cor }: { escopo: string; candidatos: VotoCand[]; cor: (v: VotoCand) => string }) {
+  const hist = useHistoricoLido(escopo);
   const ids = candidatos.map((c) => c.id);
   const ss = series(hist, 'presidente', ids, 'pct');
   const pontos = ss.flatMap((s) => s.pontos);
@@ -91,16 +91,19 @@ function Evolucao({ uf, candidatos, cor }: { uf: string; candidatos: VotoCand[];
 }
 
 type Props = {
-  uf: string;
+  uf: string; // pasta das fotos de governador
   nome: string;
+  sub?: string; // ao lado do nome, por exemplo a sigla do estado
+  escopo?: string; // onde a curva é registrada; por padrão a do estado
+  clique?: string; // dica no rodapé
   l2: Local | undefined; // presidente, 2º turno
   l1: Local | undefined; // presidente, 1º turno (encerrado)
-  gov: Local | undefined; // governador, 2º turno, onde há
+  gov?: Local; // governador, 2º turno, onde há
   finalistas: VotoCand[]; // os dois do 2º turno, na ordem nacional
   cor: (v: VotoCand) => string;
 };
 
-export function DicaEstado({ uf, nome, l2, l1, gov, finalistas, cor }: Props) {
+export function DicaEstado({ uf, nome, sub, escopo = `2t:uf:${uf}`, clique = 'Clique para ver as cidades, o senado e os deputados.', l2, l1, gov, finalistas, cor }: Props) {
   const ref = l2 ?? l1;
   const apurado = !!l2 && l2.total > 0;
   const base = apurado ? l2 : undefined;
@@ -110,7 +113,10 @@ export function DicaEstado({ uf, nome, l2, l1, gov, finalistas, cor }: Props) {
   return (
     <div className="space-y-3">
       <div className="flex items-baseline justify-between gap-2">
-        <p className="text-base font-semibold leading-tight">{nome}</p>
+        <p className="text-base font-semibold leading-tight">
+          {nome}
+          {sub && <span className="ml-1.5 text-xs font-normal text-zinc-400">{sub}</span>}
+        </p>
         {ref && <p className="text-xs text-zinc-400">{fmtInt(ref.eleitorado ?? 0)} eleitores</p>}
       </div>
 
@@ -154,7 +160,7 @@ export function DicaEstado({ uf, nome, l2, l1, gov, finalistas, cor }: Props) {
         )}
       </div>
 
-      <Evolucao uf={uf} candidatos={finalistas} cor={cor} />
+      <Evolucao escopo={escopo} candidatos={finalistas} cor={cor} />
 
       {l1 && l1.total > 0 && (
         <p className="text-xs text-zinc-400">
@@ -190,7 +196,7 @@ export function DicaEstado({ uf, nome, l2, l1, gov, finalistas, cor }: Props) {
         </div>
       )}
 
-      <p className="text-xs text-zinc-500">Clique para ver as cidades, o senado e os deputados.</p>
+      <p className="text-xs text-zinc-500">{clique}</p>
     </div>
   );
 }

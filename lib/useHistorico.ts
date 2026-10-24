@@ -25,16 +25,19 @@ function obter(escopo: string): Ponto[] {
   return h;
 }
 
-export function adicionar(escopo: string, ponto: Ponto) {
+// `persistir: false` guarda só em memória (para muitos locais, como os municípios de um estado).
+export function adicionar(escopo: string, ponto: Ponto, persistir = true) {
   if (semApuracao(ponto)) return;
   const atual = obter(escopo);
   const novo = registrar(atual, ponto);
   if (novo === atual) return;
   memoria.set(escopo, novo);
-  try {
-    localStorage.setItem(chave(escopo), JSON.stringify(novo));
-  } catch {
-    // Sem espaço no navegador: o histórico segue só em memória.
+  if (persistir) {
+    try {
+      localStorage.setItem(chave(escopo), JSON.stringify(novo));
+    } catch {
+      // Sem espaço no navegador: o histórico segue só em memória.
+    }
   }
   ouvintes.forEach((f) => f());
 }
