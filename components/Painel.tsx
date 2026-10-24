@@ -18,6 +18,7 @@ export function Painel({ turno = 1 }: { turno?: Turno }) {
   const { dados, erro } = useResultados(municipio, turno);
   const { marcados, alternar } = useMarcados();
   const escopo = municipio ?? 'geral';
+  const aguardando = !!dados && turno === 2 && dados.cargos.every((c) => !c.apuracao?.secoesTotalizadas);
   const historico = useHistorico(turno === 2 ? `2t:${escopo}` : escopo, dados, marcados);
 
   return (
@@ -26,7 +27,7 @@ export function Painel({ turno = 1 }: { turno?: Turno }) {
       {!dados ? (
         erro && turno === 2 ? (
           <p className="rounded-lg border border-zinc-800 bg-zinc-900 p-3 text-sm text-zinc-300">
-            Os resultados do 2º turno ainda não estão disponíveis no TSE. A votação é em 25 de outubro; esta página tenta de novo a cada 30s.
+            Os resultados do 2º turno ainda não estão disponíveis no TSE. Esta página tenta de novo a cada 30s.
           </p>
         ) : erro ? (
           <p role="alert" className="text-red-400">
@@ -37,6 +38,11 @@ export function Painel({ turno = 1 }: { turno?: Turno }) {
         )
       ) : (
         <>
+          {aguardando && (
+            <p role="status" className="rounded-lg border border-amber-500/60 bg-amber-950/40 p-3 text-sm text-amber-100">
+              Apuração do 2º turno ainda não iniciada: nenhuma seção totalizada até agora. Os números abaixo aparecem zerados e se atualizam sozinhos a cada 30s.
+            </p>
+          )}
           <ApuracaoGlobal
             cargos={dados.cargos}
             buscadoEm={dados.buscadoEm}
