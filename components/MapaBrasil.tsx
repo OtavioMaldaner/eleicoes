@@ -38,7 +38,7 @@ type Props = {
   dica?: (uf: string) => ReactNode;
 };
 
-const LARGURA_DICA = 280;
+const LARGURA_DICA = 330;
 
 export function MapaBrasil({ features, pintura, rotulo, selecionado, onSelecionar, dica }: Props) {
   const caixa = useRef<HTMLDivElement>(null);
