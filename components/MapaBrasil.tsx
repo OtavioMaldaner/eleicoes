@@ -2,7 +2,7 @@
 
 import { geoIdentity, geoPath } from 'd3-geo';
 import type { Feature, FeatureCollection } from 'geojson';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { SUPERFICIE } from '@/lib/cores';
 import { UFS } from '@/lib/mapas/dados';
 
@@ -34,11 +34,21 @@ type Props = {
   rotulo: (uf: string) => string;
   selecionado: string | null;
   onSelecionar: (uf: string) => void;
+  // Resumo ao passar o mouse (ou tocar) num estado; sem ele, vale a dica nativa do navegador.
+  dica?: (uf: string) => ReactNode;
 };
 
-export function MapaBrasil({ features, pintura, rotulo, selecionado, onSelecionar }: Props) {
+const LARGURA_DICA = 280;
+
+export function MapaBrasil({ features, pintura, rotulo, selecionado, onSelecionar, dica }: Props) {
   const caixa = useRef<HTMLDivElement>(null);
   const [largura, setLargura] = useState(0);
+  const [sobre, setSobre] = useState<{ uf: string; x: number; y: number } | null>(null);
+  const passar = (uf: string) => (e: React.PointerEvent) => {
+    const r = caixa.current?.getBoundingClientRect();
+    if (dica && r) setSobre({ uf, x: e.clientX - r.left, y: e.clientY - r.top });
+  };
+  const sair = () => setSobre(null);
   useEffect(() => {
     const el = caixa.current;
     if (!el) return;
@@ -74,7 +84,7 @@ export function MapaBrasil({ features, pintura, rotulo, selecionado, onSeleciona
   const xEtiqueta = largura - MARGEM_ETIQUETAS + 18;
 
   return (
-    <div ref={caixa} style={{ minHeight: altura || undefined }}>
+    <div ref={caixa} className="relative" style={{ minHeight: altura || undefined }}>
       {largura > 0 && (
         <svg width={largura} height={altura} role="img" aria-label="Mapa do Brasil por estado">
           {formas.map((f) => {
@@ -90,8 +100,11 @@ export function MapaBrasil({ features, pintura, rotulo, selecionado, onSeleciona
                 strokeLinejoin="round"
                 className="cursor-pointer"
                 onClick={() => onSelecionar(f.uf)}
+                onPointerEnter={passar(f.uf)}
+                onPointerMove={passar(f.uf)}
+                onPointerLeave={sair}
               >
-                <title>{rotulo(f.uf)}</title>
+                {!dica && <title>{rotulo(f.uf)}</title>}
               </path>
             );
           })}
@@ -125,8 +138,15 @@ export function MapaBrasil({ features, pintura, rotulo, selecionado, onSeleciona
           {etiquetas.map((f) => {
             const p = pintura(f.uf);
             return (
-              <g key={f.uf} className="cursor-pointer" onClick={() => onSelecionar(f.uf)}>
-                <title>{rotulo(f.uf)}</title>
+              <g
+                key={f.uf}
+                className="cursor-pointer"
+                onClick={() => onSelecionar(f.uf)}
+                onPointerEnter={passar(f.uf)}
+                onPointerMove={passar(f.uf)}
+                onPointerLeave={sair}
+              >
+                {!dica && <title>{rotulo(f.uf)}</title>}
                 <line x1={f.cx} y1={f.cy} x2={xEtiqueta} y2={f.y + ALTURA_ETIQUETA / 2} stroke="#71717a" strokeWidth={1} />
                 <rect
                   x={xEtiqueta}
@@ -159,6 +179,19 @@ export function MapaBrasil({ features, pintura, rotulo, selecionado, onSeleciona
             );
           })}
         </svg>
+      )}
+      {dica && sobre && (
+        <div
+          role="tooltip"
+          className="pointer-events-none absolute z-10 rounded-lg border border-zinc-700 bg-zinc-950/95 p-3 text-sm shadow-xl"
+          style={{
+            width: LARGURA_DICA,
+            top: Math.max(sobre.y - 12, 0),
+            left: sobre.x + 16 + LARGURA_DICA > largura ? Math.max(sobre.x - 16 - LARGURA_DICA, 0) : sobre.x + 16,
+          }}
+        >
+          {dica(sobre.uf)}
+        </div>
       )}
     </div>
   );
