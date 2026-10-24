@@ -68,7 +68,36 @@ export function useEstado(uf: string | null, cargo: CargoBrasil) {
   };
 }
 
-// Um estado na tela do 2º turno: 2º turno ao vivo e 1º turno encerrado.
+// Contornos dos municípios de um estado.
+function useContornos(uf: string | null) {
+  const [geo, setGeo] = useState<{ uf: string; features: Feature[] } | null>(null);
+  useEffect(() => {
+    if (!uf) return;
+    let vivo = true;
+    fetch(`/geo/mun/${uf}.json`)
+      .then((r) => r.json())
+      .then((g) => vivo && setGeo({ uf, features: g.features }))
+      .catch(() => {});
+    return () => {
+      vivo = false;
+    };
+  }, [uf]);
+  return geo && geo.uf === uf ? geo.features : null;
+}
+
+const INTERVALO_1T_FINAL_MS = 30 * 60_000;
+
+// Um estado na tela do 2º turno: 2º turno ao vivo e 1º turno encerrado, com os municípios dos dois.
+// Só o estado escolhido é buscado: o país inteiro seriam 5.570 arquivos do TSE por rodada.
 export function useEstadoSegundoTurno(uf: string | null) {
-  return usePeriodico<EstadoSegundoTurno>(uf, uf && `/api/segundo-turno/estado?uf=${uf}`, INTERVALO_ESTADO_MS, 15_000).dados;
+  const resumo = usePeriodico<EstadoSegundoTurno>(uf, uf && `/api/segundo-turno/estado?uf=${uf}`, INTERVALO_ESTADO_MS, 15_000);
+  const municipios2 = usePeriodico<Municipios>(uf, uf && `/api/municipios?uf=${uf}&cargo=presidente&turno=2`, INTERVALO_MUNICIPIOS_MS, 60_000);
+  const municipios1 = usePeriodico<Municipios>(uf, uf && `/api/municipios?uf=${uf}&cargo=presidente&final=1`, INTERVALO_1T_FINAL_MS, 60_000);
+  return {
+    resumo: resumo.dados,
+    municipios2: municipios2.dados,
+    municipios1: municipios1.dados,
+    erroMunicipios: municipios2.erro,
+    contornos: useContornos(uf),
+  };
 }

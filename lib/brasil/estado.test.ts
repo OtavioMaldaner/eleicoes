@@ -19,6 +19,17 @@ describe('municípios por estado', () => {
   });
 });
 
+describe('buscarMunicipios no 2º turno', () => {
+  it('usa a eleição federal 6258 e o código do município', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(pres)));
+    const r = await buscarMunicipios('df', 'presidente', undefined, 2);
+    const urls = vi.mocked(fetch).mock.calls.map(([u]) => String(u));
+    expect(urls).toHaveLength(1);
+    expect(urls[0]).toMatch(/\/6258\/dados\/df\/df\d+-c0001-e006258-u\.json$/);
+    expect(r.municipios).toHaveLength(1);
+  });
+});
+
 describe('buscarEstado', () => {
   it('traz presidente, governador e senador do estado', async () => {
     vi.stubGlobal('fetch', vi.fn(async (url: string) => (url.includes('c0005') ? new Response('x', { status: 500 }) : new Response(pres))));

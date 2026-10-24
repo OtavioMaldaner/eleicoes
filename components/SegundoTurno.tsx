@@ -14,6 +14,7 @@ import { useMarcados } from '@/lib/useMarcados';
 import { Duelo, Linha } from './CartaoEstado';
 import { GraficoEvolucao } from './GraficoEvolucao';
 import { MapaBrasil, type Pintura } from './MapaBrasil';
+import { MapaCoropletico } from './MapaCoropletico';
 import { PainelCamara } from './PainelCamara';
 
 const SEM_VOTOS = '#3f3f46';
@@ -21,6 +22,7 @@ const EMPATE = '#71717a';
 const OPACIDADE_1T = 0.4;
 const PRIMEIRO_TURNO_FINAL_MS = 10 * 60_000; // o 1º turno já acabou: basta rever de vez em quando
 
+const chaveMunicipio = (f: Feature) => String(f.properties?.codarea ?? '');
 const cartao = 'rounded-2xl border border-zinc-800 bg-zinc-900 p-4';
 // `eleito` do TSE também marca quem vai ao 2º turno; só a situação distingue.
 const foiEleito = (v: VotoCand) => /^eleito/i.test(v.situacao ?? '');
@@ -142,10 +144,17 @@ export function SegundoTurno() {
   const presidente1 = useBrasil('presidente', 1, PRIMEIRO_TURNO_FINAL_MS);
   const governadores = useBrasil('governador', 2);
   const detalhe = useEstadoSegundoTurno(uf);
+  const [munSel, setMunSel] = useState<string | null>(null);
+  const escolher = (k: string | null) => {
+    setUf(k);
+    setMunSel(null);
+  };
   const { marcados } = useMarcados();
 
   const nac2 = presidente2.dados?.nacional ?? null;
   const nac1 = presidente1.dados?.nacional ?? null;
+  const porMun2 = new Map((detalhe.municipios2?.municipios ?? []).map((l) => [l.chave, l]));
+  const porMun1 = new Map((detalhe.municipios1?.municipios ?? []).map((l) => [l.chave, l]));
   const nacional = useMemo(
     () => (nac2 ? { cargos: [comoResultado(nac2)], buscadoEm: presidente2.dados!.buscadoEm } : null),
     [nac2, presidente2.dados],
@@ -170,20 +179,27 @@ export function SegundoTurno() {
   const nomeUf = (k: string) => por2.get(k)?.nome ?? por1.get(k)?.nome ?? k.toUpperCase();
 
   // 2º turno quando já há votos; senão o líder do 1º turno, em tom suave.
-  function pintura(k: string): Pintura {
-    const l2 = por2.get(k);
+  function pinturaDe(l2: Local | undefined, l1: Local | undefined): Pintura {
     if (apurado(l2)) return { fill: l2.lider ? cor(l2.votos[0]) : EMPATE, opacidade: 1 };
-    const l1 = por1.get(k);
     if (apurado(l1) && l1.lider) return { fill: cor(l1.votos[0]), opacidade: OPACIDADE_1T };
     return { fill: SEM_VOTOS, opacidade: 1 };
   }
-  function rotulo(k: string) {
-    const l2 = por2.get(k);
-    if (apurado(l2)) return l2.lider ? `${l2.nome}: ${l2.votos[0].nome} lidera com ${fmtPct(pct(l2.votos[0], l2))} (2º turno)` : `${l2.nome}: empate (2º turno)`;
-    const l1 = por1.get(k);
-    if (apurado(l1) && l1.lider) return `${l1.nome}: 2º turno sem votos apurados; no 1º turno, ${l1.votos[0].nome} liderou`;
-    return `${nomeUf(k)}: sem votos apurados`;
+  function descreve(l2: Local | undefined, l1: Local | undefined, nome: string) {
+    if (apurado(l2)) return l2.lider ? `${nome}: ${l2.votos[0].nome} lidera com ${fmtPct(pct(l2.votos[0], l2))} (2º turno)` : `${nome}: empate (2º turno)`;
+    if (apurado(l1) && l1.lider) return `${nome}: 2º turno sem votos apurados; no 1º turno, ${l1.votos[0].nome} liderou`;
+    return `${nome}: sem votos apurados`;
   }
+  const pintura = (k: string) => pinturaDe(por2.get(k), por1.get(k));
+  const rotulo = (k: string) => descreve(por2.get(k), por1.get(k), nomeUf(k));
+  const pinturaMun = (k: string) => pinturaDe(porMun2.get(k), porMun1.get(k));
+  const rotuloMun = (k: string) => {
+    const l2 = porMun2.get(k);
+    const l1 = porMun1.get(k);
+    return descreve(l2, l1, (l2 ?? l1)?.nome ?? 'Município');
+  };
+  const munAtual = munSel ? (porMun2.get(munSel) ?? porMun1.get(munSel)) : undefined;
+  const munApurado = munSel ? porMun2.get(munSel) : undefined;
+  const lMun = apurado(munApurado) ? munApurado : munSel ? porMun1.get(munSel) : undefined;
 
   const candidatos2 = (nac2 ?? nac1)?.votos.slice(0, 2) ?? [];
   const erro = presidente2.erro && !presidente2.dados ? presidente2.erro : null;
@@ -292,7 +308,7 @@ export function SegundoTurno() {
                       <li key={l.chave}>
                         <button
                           type="button"
-                          onClick={() => setUf(l.chave)}
+                          onClick={() => escolher(l.chave)}
                           className={`flex w-full flex-col gap-0.5 px-1 py-2 text-left hover:bg-zinc-800 ${uf === l.chave ? 'bg-zinc-800' : ''}`}
                         >
                           <span className="flex items-baseline justify-between gap-2">
@@ -321,9 +337,65 @@ export function SegundoTurno() {
           </div>
 
           <section className={`${cartao} order-first xl:order-none`} aria-label="Mapa">
-            <div className="mx-auto max-w-[760px]">
-              <MapaBrasil features={contornos} pintura={pintura} rotulo={rotulo} selecionado={uf} onSelecionar={setUf} />
-            </div>
+            {uf ? (
+              <div>
+                <div className="mb-2 flex flex-wrap items-center gap-2 text-sm">
+                  <button type="button" onClick={() => escolher(null)} className="rounded-full border border-zinc-700 px-3 py-1 text-zinc-200 hover:bg-zinc-800">
+                    ‹ Brasil
+                  </button>
+                  <span className="font-semibold">{nomeUf(uf)}</span>
+                  <span className="text-xs text-zinc-500">por município · atualiza a cada 90s</span>
+                </div>
+                {detalhe.contornos && (detalhe.municipios2 || detalhe.municipios1) ? (
+                  <div className="mx-auto max-w-[760px]">
+                    <MapaCoropletico
+                      titulo={`Mapa de ${nomeUf(uf)} por município`}
+                      features={detalhe.contornos}
+                      chaveDe={chaveMunicipio}
+                      projecao="plana"
+                      proporcao={0.85}
+                      cor={(k) => pinturaMun(k).fill}
+                      opacidade={(k) => pinturaMun(k).opacidade}
+                      rotulo={rotuloMun}
+                      selecionado={munSel}
+                      onSelecionar={setMunSel}
+                    />
+                  </div>
+                ) : (
+                  <p className="py-16 text-center text-sm text-zinc-400">
+                    {detalhe.erroMunicipios ? `Não foi possível carregar os municípios (${detalhe.erroMunicipios}).` : `Carregando os municípios de ${nomeUf(uf)}…`}
+                  </p>
+                )}
+                <p className="mt-2 min-h-10 rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm" aria-live="polite">
+                  {munAtual ? (
+                    <>
+                      <span className="font-semibold">{munAtual.nome}</span>{' '}
+                      {apurado(lMun) ? (
+                        <>
+                          <span className="text-xs text-zinc-400">{apurado(munApurado) ? `2º turno · ${fmtPct(munApurado.pctSecoes)} das seções` : '1º turno (2º ainda sem votos)'}</span>
+                          {lMun.votos.slice(0, 2).map((v) => (
+                            <span key={v.id} className="ml-3 inline-flex items-center gap-1.5 whitespace-nowrap">
+                              <Amostra cor={cor(v)} /> {v.nome} <span className="tabular-nums text-zinc-300">{fmtPct(pct(v, lMun))}</span>
+                            </span>
+                          ))}
+                        </>
+                      ) : (
+                        <span className="ml-3 text-zinc-400">sem votos apurados</span>
+                      )}
+                    </>
+                  ) : (
+                    <span className="text-zinc-500">Passe o mouse ou toque num município para ver os votos.</span>
+                  )}
+                </p>
+                {(detalhe.municipios2?.falhas ?? 0) > 0 && (
+                  <p className="mt-1 text-xs text-amber-300">{detalhe.municipios2!.falhas} municípios não responderam nesta atualização.</p>
+                )}
+              </div>
+            ) : (
+              <div className="mx-auto max-w-[760px]">
+                <MapaBrasil features={contornos} pintura={pintura} rotulo={rotulo} selecionado={uf} onSelecionar={escolher} />
+              </div>
+            )}
             <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-300">
               {candidatos2.map((v) => (
                 <li key={v.id} className="flex items-center gap-1.5">
@@ -338,16 +410,16 @@ export function SegundoTurno() {
               </li>
             </ul>
             <p className="mt-2 text-xs text-zinc-500">
-              Cada estado tem a cor de quem lidera o 2º turno. Enquanto o estado não tem votos, aparece em tom suave o líder do 1º turno. Clique num estado para ver presidente, governador, senado e deputados.
+              Cada estado (e, ao abrir um estado, cada município) tem a cor de quem lidera o 2º turno. Enquanto não há votos, aparece em tom suave o líder do 1º turno. Clique num estado para ver as cidades, o presidente, o governador, o senado e os deputados.
             </p>
           </section>
 
           <div className="space-y-4">
             {uf ? (
               <>
-                <CartaoEstado uf={uf} nome={nomeUf(uf)} dados={detalhe} onFechar={() => setUf(null)} />
-                {detalhe && apurado(detalhe.depFederal) && (
-                  <PainelCamara titulo={nomeUf(uf)} locais={[detalhe.depFederal]} cor={corPartido} contagem={null} />
+                <CartaoEstado uf={uf} nome={nomeUf(uf)} dados={detalhe.resumo} onFechar={() => escolher(null)} />
+                {detalhe.resumo && apurado(detalhe.resumo.depFederal) && (
+                  <PainelCamara titulo={nomeUf(uf)} locais={[detalhe.resumo.depFederal]} cor={corPartido} contagem={null} />
                 )}
               </>
             ) : (
