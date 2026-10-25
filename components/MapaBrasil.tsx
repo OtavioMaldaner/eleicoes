@@ -14,6 +14,8 @@ const LARGURA_ETIQUETA = 48;
 // Com o selo de % a etiqueta lateral é mais larga e a margem do mapa cresce junto.
 const LARGURA_ETIQUETA_SELO = 62;
 const MARGEM_ETIQUETAS_SELO = 86;
+// Num mapa estreito (celular) o selo dentro dos estados se sobrepõe ao dos vizinhos: fica só nas etiquetas laterais.
+const LARGURA_MIN_SELO_DENTRO = 520;
 const ALTURA_ETIQUETA = 22;
 
 type Forma = { uf: string; d: string; cx: number; cy: number };
@@ -156,7 +158,7 @@ export function MapaBrasil({ features, pintura, rotulo, selecionado, onSeleciona
           {formas
             .filter((f) => !PEQUENOS.has(f.uf))
             .map((f) => {
-              const texto = selo?.(f.uf);
+              const texto = largura >= LARGURA_MIN_SELO_DENTRO ? selo?.(f.uf) : null;
               const comum = {
                 x: f.cx,
                 textAnchor: 'middle' as const,
