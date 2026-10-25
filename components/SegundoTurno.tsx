@@ -8,7 +8,7 @@ import { corPartido } from '@/lib/cores';
 import { FAIXA_CANDIDATO, FAIXA_LIDER, FAIXA_LIDER_1T, EMPATE, SEM_VOTOS, pinturaDegrade } from '@/lib/degrade';
 import { eleitoDe, foiEleito } from '@/lib/eleito';
 import { mudancaPorEstado } from '@/lib/mudanca';
-import { placar } from '@/lib/placar';
+import { placar, primeiroTurno } from '@/lib/placar';
 import { projetar } from '@/lib/projecao';
 import { FAIXA_VARIACAO, pinturaVariacao } from '@/lib/variacao';
 import { ABSTENCAO, FAIXA_ABSTENCAO, pinturaAbstencao } from '@/lib/abstencao';
@@ -324,10 +324,12 @@ export function SegundoTurno() {
   const aguardando = !!nac2 && nac2.total === 0;
   const eleitoPresidente = eleitoDe(nac2);
   const semVotos2 = !nac2 || nac2.total === 0;
-  const projecao = candidatos2.length === 2 ? projetar(presidente2.dados?.estados ?? [], presidente1.dados?.estados ?? [], candidatos2[0].id, candidatos2[1].id) : null;
   // Ordem fixa por número, para a barra do placar não trocar de lado quando a liderança muda.
   const finalistasFixos = [...candidatos2].sort((x, y) => Number(x.numero) - Number(y.numero));
   const placarNac = placar(nac2, finalistasFixos);
+  const primeiroNac = primeiroTurno(nac1, finalistasFixos);
+  const projecao =
+    finalistasFixos.length === 2 ? projetar(presidente2.dados?.estados ?? [], presidente1.dados?.estados ?? [], finalistasFixos[0].id, finalistasFixos[1].id) : null;
   const mudanca = mudancaPorEstado(presidente2.dados?.estados ?? [], presidente1.dados?.estados ?? [], finalistasFixos);
   const estadosApurados = [...por2.values()].filter((l) => l.total > 0).length;
 
@@ -347,7 +349,7 @@ export function SegundoTurno() {
 
       {presidente2.dados && (
         <div className="space-y-4">
-          <PlacarDisputa placar={placarNac} eleito={eleitoPresidente ?? null} cor={cor} />
+          <PlacarDisputa placar={placarNac} eleito={eleitoPresidente ?? null} cor={cor} primeiro={primeiroNac} projecao={projecao} />
           <div className="grid items-start gap-4 xl:grid-cols-[320px_minmax(0,1fr)_380px]">
             <div className="order-1 xl:sticky xl:top-16 xl:order-2">
               <section className={cartao} aria-label="Mapa">
@@ -638,7 +640,7 @@ export function SegundoTurno() {
             )}
             {!uf && (
               <div className="order-2">
-                <CartaoProjecao projecao={projecao} pctSecoes={nac2?.pctSecoes ?? 0} finalistas={candidatos2} cor={cor} />
+                <CartaoProjecao projecao={projecao} pctSecoes={nac2?.pctSecoes ?? 0} finalistas={finalistasFixos} cor={cor} />
               </div>
             )}
             <div className="order-5">

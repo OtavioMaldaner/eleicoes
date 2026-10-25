@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { montar, type VotoCand } from './mapas/agregar';
-import { manchete, placar } from './placar';
+import { manchete, placar, primeiroTurno } from './placar';
 
 const cand = (id: string, votos: number, nome = id): VotoCand => ({ id, numero: '0', nome, partido: id, votos });
 const lula = cand('a', 0, 'LULA');
@@ -57,5 +57,26 @@ describe('manchete', () => {
   it('com eleito', () => {
     const p = placar(local(600, 400), [lula, flavio])!;
     expect(manchete(p, p.a)).toBe('Lula eleito presidente');
+  });
+});
+
+describe('primeiroTurno', () => {
+  const c = (id: string, votos: number) => cand(id, votos, id);
+  const l1 = montar('br', 'Brasil', 100, 100, [c('a', 4516), c('b', 4703), c('c', 781)]);
+  it('é o percentual de cada finalista sobre os votos do 1º turno, na ordem recebida', () => {
+    const p = primeiroTurno(l1, [lula, flavio])!;
+    expect(p.pctA).toBeCloseTo(45.16, 2);
+    expect(p.pctB).toBeCloseTo(47.03, 2);
+    expect(primeiroTurno(l1, [flavio, lula])!.pctA).toBeCloseTo(47.03, 2);
+  });
+  it('finalista que não aparece no 1º turno conta zero', () => {
+    const so = montar('br', 'Brasil', 100, 100, [c('a', 50), c('c', 50)]);
+    expect(primeiroTurno(so, [lula, flavio])).toEqual({ pctA: 50, pctB: 0 });
+  });
+  it('sem dados do 1º turno devolve null', () => {
+    expect(primeiroTurno(null, [lula, flavio])).toBeNull();
+    expect(primeiroTurno(undefined, [lula, flavio])).toBeNull();
+    expect(primeiroTurno(montar('br', 'Brasil', 100, 0, []), [lula, flavio])).toBeNull();
+    expect(primeiroTurno(l1, [lula])).toBeNull();
   });
 });

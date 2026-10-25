@@ -47,3 +47,11 @@ export function manchete(p: Placar, eleito: VotoCand | null): string {
   if (!p.lider) return 'Empate em votos';
   return `${primeiroNome(p.lider)} lidera por ${fmtVotosCurto(p.vantagem)} votos`;
 }
+
+export type PrimeiroTurno = { pctA: number; pctB: number }; // % de cada finalista no 1º turno, na ordem recebida
+
+export function primeiroTurno(l: Local | null | undefined, finalistas: VotoCand[]): PrimeiroTurno | null {
+  if (!l || l.total === 0 || finalistas.length < 2) return null;
+  const pct = (v: VotoCand) => (votosDe(l, v.id) / l.total) * 100;
+  return { pctA: pct(finalistas[0]), pctB: pct(finalistas[1]) };
+}
