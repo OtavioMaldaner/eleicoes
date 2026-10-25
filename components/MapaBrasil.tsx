@@ -10,6 +10,10 @@ const UF_POR_IBGE = new Map(UFS.map((u) => [u.ibge, u.sigla]));
 // Estados pequenos demais para a sigla caber dentro: ganham etiqueta à direita.
 const PEQUENOS = new Set(['rn', 'pb', 'pe', 'al', 'se', 'es', 'rj', 'df']);
 const MARGEM_ETIQUETAS = 70;
+const LARGURA_ETIQUETA = 48;
+// Com o selo de % a etiqueta lateral é mais larga e a margem do mapa cresce junto.
+const LARGURA_ETIQUETA_SELO = 62;
+const MARGEM_ETIQUETAS_SELO = 86;
 const ALTURA_ETIQUETA = 22;
 
 type Forma = { uf: string; d: string; cx: number; cy: number };
@@ -38,13 +42,15 @@ type Props = {
   dica?: (uf: string) => ReactNode;
   // Círculo sobre o estado; `raio` é a fração (0 a 1) do raio máximo, que acompanha a largura do mapa.
   marcas?: (uf: string) => { raio: number; cor: string } | null;
+  // Texto curto (ex.: "74%") junto da sigla de cada estado; null não mostra nada.
+  selo?: (uf: string) => string | null;
 };
 
 const LARGURA_DICA = 340;
 const ALTURA_DICA = 520; // estimativa, só para a dica não passar da base do mapa
 const RAIO_MAXIMO = 0.045; // do raio da marca maior, em fração da largura do mapa
 
-export function MapaBrasil({ features, pintura, rotulo, selecionado, onSelecionar, dica, marcas }: Props) {
+export function MapaBrasil({ features, pintura, rotulo, selecionado, onSelecionar, dica, marcas, selo }: Props) {
   const caixa = useRef<HTMLDivElement>(null);
   const [largura, setLargura] = useState(0);
   const [sobre, setSobre] = useState<{ uf: string; x: number; y: number } | null>(null);
@@ -67,7 +73,10 @@ export function MapaBrasil({ features, pintura, rotulo, selecionado, onSeleciona
     return () => ro.disconnect();
   }, []);
 
-  const altura = Math.round(Math.max(largura - MARGEM_ETIQUETAS, 0) * 0.98);
+  const comSelo = !!selo;
+  const margem = comSelo ? MARGEM_ETIQUETAS_SELO : MARGEM_ETIQUETAS;
+  const larguraEtiqueta = comSelo ? LARGURA_ETIQUETA_SELO : LARGURA_ETIQUETA;
+  const altura = Math.round(Math.max(largura - margem, 0) * 0.98);
 
   const { formas, etiquetas } = useMemo(() => {
     if (!largura || features.length === 0) return { formas: [], etiquetas: [] };
@@ -77,7 +86,7 @@ export function MapaBrasil({ features, pintura, rotulo, selecionado, onSeleciona
       .fitExtent(
         [
           [4, 4],
-          [largura - MARGEM_ETIQUETAS, altura - 4],
+          [largura - margem, altura - 4],
         ],
         colecao,
       );
@@ -89,9 +98,9 @@ export function MapaBrasil({ features, pintura, rotulo, selecionado, onSeleciona
     });
     const etiquetas = empilhar(formas.filter((f) => PEQUENOS.has(f.uf)), altura);
     return { formas, etiquetas };
-  }, [features, largura, altura]);
+  }, [features, largura, altura, margem]);
 
-  const xEtiqueta = largura - MARGEM_ETIQUETAS + 18;
+  const xEtiqueta = largura - margem + 18;
 
   // Em tela estreita (celular) a dica não pode ser maior que o próprio mapa.
   const larguraDica = Math.min(LARGURA_DICA, Math.max(largura - 8, 0));
@@ -146,26 +155,33 @@ export function MapaBrasil({ features, pintura, rotulo, selecionado, onSeleciona
             })}
           {formas
             .filter((f) => !PEQUENOS.has(f.uf))
-            .map((f) => (
-              <text
-                key={f.uf}
-                x={f.cx}
-                y={f.cy}
-                textAnchor="middle"
-                dominantBaseline="middle"
-                fontSize={11}
-                fontWeight={600}
-                letterSpacing={1}
-                fill="#fafafa"
-                stroke={SUPERFICIE}
-                strokeWidth={3}
-                strokeOpacity={0.55}
-                paintOrder="stroke"
-                pointerEvents="none"
-              >
-                {f.uf.toUpperCase()}
-              </text>
-            ))}
+            .map((f) => {
+              const texto = selo?.(f.uf);
+              const comum = {
+                x: f.cx,
+                textAnchor: 'middle' as const,
+                dominantBaseline: 'middle' as const,
+                fontWeight: 600,
+                fill: '#fafafa',
+                stroke: SUPERFICIE,
+                strokeWidth: 3,
+                strokeOpacity: 0.55,
+                paintOrder: 'stroke' as const,
+                pointerEvents: 'none' as const,
+              };
+              return (
+                <g key={f.uf}>
+                  <text {...comum} y={texto ? f.cy - 5 : f.cy} fontSize={11} letterSpacing={1}>
+                    {f.uf.toUpperCase()}
+                  </text>
+                  {texto && (
+                    <text {...comum} y={f.cy + 8} fontSize={10}>
+                      {texto}
+                    </text>
+                  )}
+                </g>
+              );
+            })}
           {etiquetas.map((f) => {
             const p = pintura(f.uf);
             return (
@@ -182,7 +198,7 @@ export function MapaBrasil({ features, pintura, rotulo, selecionado, onSeleciona
                 <rect
                   x={xEtiqueta}
                   y={f.y}
-                  width={48}
+                  width={larguraEtiqueta}
                   height={ALTURA_ETIQUETA}
                   rx={4}
                   fill={p.fill}
@@ -191,13 +207,13 @@ export function MapaBrasil({ features, pintura, rotulo, selecionado, onSeleciona
                   strokeWidth={f.uf === selecionado ? 2 : 1}
                 />
                 <text
-                  x={xEtiqueta + 24}
+                  x={xEtiqueta + larguraEtiqueta / 2}
                   y={f.y + ALTURA_ETIQUETA / 2 + 1}
                   textAnchor="middle"
                   dominantBaseline="middle"
-                  fontSize={11}
+                  fontSize={comSelo ? 10 : 11}
                   fontWeight={600}
-                  letterSpacing={1}
+                  letterSpacing={comSelo ? 0.5 : 1}
                   fill="#fafafa"
                   stroke={SUPERFICIE}
                   strokeWidth={3}
@@ -205,6 +221,7 @@ export function MapaBrasil({ features, pintura, rotulo, selecionado, onSeleciona
                   paintOrder="stroke"
                 >
                   {f.uf.toUpperCase()}
+                  {selo?.(f.uf) ? ` ${selo(f.uf)}` : ''}
                 </text>
               </g>
             );

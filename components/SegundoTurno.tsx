@@ -12,7 +12,7 @@ import { placar } from '@/lib/placar';
 import { projetar } from '@/lib/projecao';
 import { FAIXA_VARIACAO, pinturaVariacao } from '@/lib/variacao';
 import { ABSTENCAO, FAIXA_ABSTENCAO, pinturaAbstencao } from '@/lib/abstencao';
-import { raioVantagem, vantagens } from '@/lib/vantagem';
+import { contarLideres, raioVantagem, vantagens } from '@/lib/vantagem';
 import { fmtInt, fmtPct, fmtVotosCurto } from '@/lib/formato';
 import type { Local, VotoCand } from '@/lib/mapas/agregar';
 import { useBrasil } from '@/lib/useBrasil';
@@ -34,6 +34,7 @@ import { MapaCoropletico } from './MapaCoropletico';
 import { PainelCamara } from './PainelCamara';
 import { CartaoProjecao } from './CartaoProjecao';
 import { FotoCandidato } from './FotoCandidato';
+import { MaioresVantagens } from './MaioresVantagens';
 import { MudancaPorEstado } from './MudancaPorEstado';
 import { PlacarDisputa } from './PlacarDisputa';
 
@@ -249,6 +250,14 @@ export function SegundoTurno() {
   const listaVantagens = vantagens([...por2.values()]);
   const maiorVantagem = listaVantagens[0]?.votos ?? 0;
   const vantagemPorUf = new Map(listaVantagens.map((v) => [v.chave, v]));
+  const selo = (k: string) => {
+    const l = por2.get(k);
+    if (emAbstencao) return l?.pctAbstencao !== undefined ? `${Math.round(l.pctAbstencao)}%` : null;
+    if (!apurado(l) || emVariacao || emVantagem) return null;
+    const v = foco ? l.votos.find((x) => x.id === foco) : l.lider ? l.votos[0] : undefined;
+    return v ? `${Math.round(pct(v, l))}%` : null;
+  };
+  const lideresPorId = contarLideres([...por2.values()]);
   const marcas = emVantagem
     ? (k: string) => {
         const v = vantagemPorUf.get(k);
@@ -435,13 +444,18 @@ export function SegundoTurno() {
                   </div>
                 ) : (
                   <div className="mx-auto w-full max-w-[min(900px,calc(100vh-15rem))]">
-                    <MapaBrasil features={contornos} pintura={pintura} rotulo={rotulo} selecionado={uf} onSelecionar={escolher} dica={dicaEstado} marcas={marcas} />
+                    <MapaBrasil features={contornos} pintura={pintura} rotulo={rotulo} selecionado={uf} onSelecionar={escolher} dica={dicaEstado} marcas={marcas} selo={selo} />
                   </div>
                 )}
                 <ul className="glass mt-3 flex flex-wrap gap-x-4 gap-y-1 rounded-xl border px-3 py-2 text-xs text-zinc-200">
                   {candidatos2.map((v) => (
                     <li key={v.id} className="flex items-center gap-1.5">
                       <Amostra cor={cor(v)} /> {v.nome} ({v.partido})
+                      {estadosApurados > 0 && !uf && (
+                        <span className="text-zinc-400">
+                          · {lideresPorId[v.id] ?? 0} {lideresPorId[v.id] === 1 ? 'estado' : 'estados'}
+                        </span>
+                      )}
                     </li>
                   ))}
                   <li className="flex basis-full flex-wrap items-center gap-x-4 gap-y-1">
@@ -566,6 +580,11 @@ export function SegundoTurno() {
             {!uf && (
               <div className="order-4">
                 <MudancaPorEstado mudanca={mudanca} finalistas={finalistasFixos} cor={cor} onUf={escolher} />
+              </div>
+            )}
+            {!uf && (
+              <div className="order-4">
+                <MaioresVantagens itens={listaVantagens} onUf={escolher} />
               </div>
             )}
             {!uf && (
