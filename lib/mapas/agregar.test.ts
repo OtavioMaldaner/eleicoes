@@ -72,3 +72,17 @@ describe('mesclarMapas', () => {
     expect(mesclarMapas(m([], [parcial]), m([], [parcial])).paises[0].total).toBe(40);
   });
 });
+
+describe('pctAbstencao', () => {
+  const comAbstencao = (pct: number): ResultadoCargo => {
+    const r = resultado({ a: 30, b: 70 });
+    return { ...r, apuracao: { ...r.apuracao, pctAbstencao: pct } as ResultadoCargo['apuracao'] };
+  };
+  it('localDe carrega o percentual de abstenção informado pelo TSE', () => {
+    expect(localDe('rs', 'Rio Grande do Sul', comAbstencao(23.4)).pctAbstencao).toBe(23.4);
+  });
+  it('somar não inventa um percentual para a soma', () => {
+    const soma = somar('x', 'X', [localDe('1', 'A', comAbstencao(20)), localDe('2', 'B', comAbstencao(30))]);
+    expect(soma.pctAbstencao).toBeUndefined();
+  });
+});

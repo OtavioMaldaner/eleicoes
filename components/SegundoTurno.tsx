@@ -11,7 +11,9 @@ import { mudancaPorEstado } from '@/lib/mudanca';
 import { placar } from '@/lib/placar';
 import { projetar } from '@/lib/projecao';
 import { FAIXA_VARIACAO, pinturaVariacao } from '@/lib/variacao';
-import { fmtInt, fmtPct } from '@/lib/formato';
+import { ABSTENCAO, FAIXA_ABSTENCAO, pinturaAbstencao } from '@/lib/abstencao';
+import { raioVantagem, vantagens } from '@/lib/vantagem';
+import { fmtInt, fmtPct, fmtVotosCurto } from '@/lib/formato';
 import type { Local, VotoCand } from '@/lib/mapas/agregar';
 import { useBrasil } from '@/lib/useBrasil';
 import { useEstadoNaUrl } from '@/lib/useEstadoNaUrl';
@@ -41,6 +43,8 @@ const pilula = (ativa: boolean) =>
   `relative z-10 rounded-full px-3 py-1.5 text-sm font-medium transition-colors sm:px-3.5 ${ativa ? 'text-white' : 'text-zinc-300 hover:text-white'}`;
 const chaveMunicipio = (f: Feature) => String(f.properties?.codarea ?? '');
 const VARIACAO = '__variacao';
+const VANTAGEM = '__vantagem'; // só no mapa do Brasil
+const MODO_ABSTENCAO = '__abstencao'; // só no mapa do Brasil
 const cartao = 'rounded-2xl border border-zinc-800 bg-zinc-900 p-4';
 const apurado = (l: Local | null | undefined): l is Local => !!l && l.total > 0;
 const pct = (v: VotoCand, l: Local) => (l.total ? (v.votos / l.total) * 100 : 0);
@@ -172,13 +176,18 @@ export function SegundoTurno() {
   // no degradê: candidato escolhido, ou quem lidera (null); ou a variação em relação ao 1º turno
   const [foco, setFoco] = useState<string | null>(null);
   const emVariacao = foco === VARIACAO;
+  const emVantagem = foco === VANTAGEM;
+  const emAbstencao = foco === MODO_ABSTENCAO;
   const escolher = (k: string | null) => {
+    // O mapa de municípios não tem esses dois modos.
+    if (k && (foco === VANTAGEM || foco === MODO_ABSTENCAO)) setFoco(null);
     setUfNaUrl(k);
     setMunSel(null);
     setMunSobre(null);
   };
   // Abre o estado da cidade e já seleciona o município, para o resumo de votos aparecer sob o mapa.
   const irParaCidade = (c: { uf: string; ibge: string }) => {
+    if (foco === VANTAGEM || foco === MODO_ABSTENCAO) setFoco(null);
     setUfNaUrl(c.uf);
     setMunSel(c.ibge);
   };
@@ -235,7 +244,17 @@ export function SegundoTurno() {
     if (apurado(l1) && l1.lider) return `${nome}: 2º turno sem votos apurados; no 1º turno, ${l1.votos[0].nome} liderou`;
     return `${nome}: sem votos apurados`;
   }
-  const pintura = (k: string) => pinturaDe(por2.get(k), por1.get(k));
+  const pintura = (k: string): Pintura =>
+    emAbstencao ? pinturaAbstencao(por2.get(k)) : emVantagem ? { fill: SEM_VOTOS, opacidade: 1 } : pinturaDe(por2.get(k), por1.get(k));
+  const listaVantagens = vantagens([...por2.values()]);
+  const maiorVantagem = listaVantagens[0]?.votos ?? 0;
+  const vantagemPorUf = new Map(listaVantagens.map((v) => [v.chave, v]));
+  const marcas = emVantagem
+    ? (k: string) => {
+        const v = vantagemPorUf.get(k);
+        return v ? { raio: raioVantagem(v.votos, maiorVantagem, 1), cor: cor(v.lider) } : null;
+      }
+    : undefined;
   const dicaMun = (k: string) => (
     <DicaEstado
       uf={uf ?? ''}
@@ -316,6 +335,16 @@ export function SegundoTurno() {
                       <span className="sm:hidden">Variação</span>
                       <span className="hidden sm:inline">Variação vs 1º turno</span>
                     </button>
+                    {!uf && (
+                      <>
+                        <button type="button" aria-pressed={emVantagem} onClick={() => setFoco(VANTAGEM)} className={pilula(emVantagem)}>
+                          Vantagem
+                        </button>
+                        <button type="button" aria-pressed={emAbstencao} onClick={() => setFoco(MODO_ABSTENCAO)} className={pilula(emAbstencao)}>
+                          Abstenção
+                        </button>
+                      </>
+                    )}
                   </Trilho>
                   <span className="ml-auto flex flex-wrap items-center gap-3 text-sm text-zinc-400">
                     <SeloAtualizacao prefixo="Presidente · 2º turno · " buscadoEm={presidente2.dados.buscadoEm} desatualizado={presidente2.dados.desatualizado} meta={presidente2.dados.meta} />
@@ -406,7 +435,7 @@ export function SegundoTurno() {
                   </div>
                 ) : (
                   <div className="mx-auto w-full max-w-[min(900px,calc(100vh-15rem))]">
-                    <MapaBrasil features={contornos} pintura={pintura} rotulo={rotulo} selecionado={uf} onSelecionar={escolher} dica={dicaEstado} />
+                    <MapaBrasil features={contornos} pintura={pintura} rotulo={rotulo} selecionado={uf} onSelecionar={escolher} dica={dicaEstado} marcas={marcas} />
                   </div>
                 )}
                 <ul className="glass mt-3 flex flex-wrap gap-x-4 gap-y-1 rounded-xl border px-3 py-2 text-xs text-zinc-200">
@@ -416,7 +445,23 @@ export function SegundoTurno() {
                     </li>
                   ))}
                   <li className="flex basis-full flex-wrap items-center gap-x-4 gap-y-1">
-                    {(foco && !emVariacao ? candidatos2.filter((v) => v.id === foco) : candidatos2).map((v) => {
+                    {emVantagem ? (
+                      <span className="text-zinc-300">
+                        Tamanho do círculo: vantagem em votos{maiorVantagem > 0 && ` (a maior: ${fmtVotosCurto(maiorVantagem)})`}
+                      </span>
+                    ) : emAbstencao ? (
+                      <span className="flex items-center gap-1.5">
+                        <span className="tabular-nums text-zinc-400">{FAIXA_ABSTENCAO[0]}%</span>
+                        <span
+                          className="h-2.5 w-24 rounded"
+                          style={{ background: `linear-gradient(to right, ${ABSTENCAO}1f, ${ABSTENCAO})` }}
+                          role="img"
+                          aria-label={`Escala de abstenção: de ${FAIXA_ABSTENCAO[0]}% a ${FAIXA_ABSTENCAO[1]}%`}
+                        />
+                        <span className="tabular-nums text-zinc-400">{FAIXA_ABSTENCAO[1]}%</span>
+                        <span className="text-zinc-300">Abstenção</span>
+                      </span>
+                    ) : (foco && !emVariacao ? candidatos2.filter((v) => v.id === foco) : candidatos2).map((v) => {
                       const [de, ate] = emVariacao ? FAIXA_VARIACAO : foco ? FAIXA_CANDIDATO : semVotos2 ? FAIXA_LIDER_1T : FAIXA_LIDER;
                       const sinal = emVariacao ? '+' : '';
                       return (
@@ -446,7 +491,11 @@ export function SegundoTurno() {
                     <span aria-hidden="true" className="font-semibold">?</span> Como ler o mapa
                   </summary>
                   <p className="mt-2 leading-relaxed">
-                  {emVariacao
+                  {emVantagem
+                    ? 'O círculo tem a cor de quem lidera no estado; quanto maior, maior a diferença de votos para o segundo. Estados sem líder ficam sem círculo. '
+                    : emAbstencao
+                      ? 'A cor mostra a abstenção nas seções já apuradas de cada estado; por isso o valor muda conforme a apuração avança. Quanto mais forte, maior a abstenção. '
+                      : emVariacao
                     ? 'A cor é a de quem mais subiu em relação ao 1º turno (em pontos percentuais dos votos); quanto mais forte, maior a subida. Fica cinza onde o 2º turno ainda não tem votos. '
                     : foco
                       ? 'Quanto mais forte a cor, maior o percentual do candidato escolhido no local. '

@@ -12,6 +12,7 @@ export type Local = {
   pctSecoes: number;
   total: number;
   eleitorado?: number;
+  pctAbstencao?: number; // % de abstenção das seções já apuradas; só em locais de um arquivo do TSE, não em somas
   votos: VotoCand[]; // do mais para o menos votado
   lider: string | null; // id do candidato; null sem votos ou em empate
   empate: boolean;
@@ -54,7 +55,7 @@ export function montar(chave: string, nome: string, secoes: number, secoesTotali
 
 export function localDe(chave: string, nome: string, r: ResultadoCargo): Local {
   const votos = r.candidatos.map((c) => ({ id: c.id, numero: c.numero, nome: c.nome, partido: c.partido, votos: c.votos, eleito: c.eleito, situacao: c.situacao }));
-  return { ...montar(chave, nome, r.apuracao?.secoesTotal ?? 0, r.apuracao?.secoesTotalizadas ?? 0, votos), eleitorado: r.apuracao?.eleitorado ?? 0 };
+  return { ...montar(chave, nome, r.apuracao?.secoesTotal ?? 0, r.apuracao?.secoesTotalizadas ?? 0, votos), eleitorado: r.apuracao?.eleitorado ?? 0, pctAbstencao: r.apuracao?.pctAbstencao };
 }
 
 export function somar(chave: string, nome: string, locais: Local[]): Local {

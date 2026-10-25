@@ -36,12 +36,15 @@ type Props = {
   onSelecionar: (uf: string) => void;
   // Resumo ao passar o mouse (ou tocar) num estado; sem ele, vale a dica nativa do navegador.
   dica?: (uf: string) => ReactNode;
+  // Círculo sobre o estado; `raio` é a fração (0 a 1) do raio máximo, que acompanha a largura do mapa.
+  marcas?: (uf: string) => { raio: number; cor: string } | null;
 };
 
 const LARGURA_DICA = 340;
 const ALTURA_DICA = 520; // estimativa, só para a dica não passar da base do mapa
+const RAIO_MAXIMO = 0.045; // do raio da marca maior, em fração da largura do mapa
 
-export function MapaBrasil({ features, pintura, rotulo, selecionado, onSelecionar, dica }: Props) {
+export function MapaBrasil({ features, pintura, rotulo, selecionado, onSelecionar, dica, marcas }: Props) {
   const caixa = useRef<HTMLDivElement>(null);
   const [largura, setLargura] = useState(0);
   const [sobre, setSobre] = useState<{ uf: string; x: number; y: number } | null>(null);
@@ -134,6 +137,13 @@ export function MapaBrasil({ features, pintura, rotulo, selecionado, onSeleciona
             .map((f) => (
               <path key={f.uf} d={f.d} fill="none" stroke="#fafafa" strokeWidth={2} strokeLinejoin="round" pointerEvents="none" />
             ))}
+          {marcas &&
+            formas.map((f) => {
+              const m = marcas(f.uf);
+              return m && m.raio > 0 ? (
+                <circle key={f.uf} cx={f.cx} cy={f.cy} r={m.raio * largura * RAIO_MAXIMO} fill={m.cor} fillOpacity={0.85} stroke={SUPERFICIE} strokeWidth={1.5} pointerEvents="none" />
+              ) : null;
+            })}
           {formas
             .filter((f) => !PEQUENOS.has(f.uf))
             .map((f) => (
