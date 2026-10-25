@@ -558,62 +558,6 @@ export function SegundoTurno() {
               </section>
             </div>
             <div className="contents xl:order-1 xl:flex xl:flex-col xl:gap-4">
-            <div className="order-2">
-            <section className={cartao} aria-label="Presidente no Brasil, 2º turno">
-              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                <p className="text-xs uppercase tracking-widest text-zinc-400">Presidente · Brasil · 2º turno</p>
-                {nac2 && !semVotos2 && (
-                  <p className="text-sm text-zinc-300">
-                    <span className="text-xl font-semibold tabular-nums text-zinc-100">{fmtPct(nac2.pctSecoes)}</span> das seções
-                  </p>
-                )}
-              </div>
-              {nac2 ? (
-                <>
-                  {semVotos2 ? (
-                    <p className="mt-1 text-sm text-zinc-300">Apuração ainda não começou.</p>
-                  ) : (
-                    <>
-                      <div className="mt-1.5 h-1.5 overflow-hidden rounded bg-zinc-800">
-                        <div className="h-full rounded bg-emerald-400" style={{ width: `${Math.min(nac2.pctSecoes, 100)}%` }} />
-                      </div>
-                      <div className="mt-3">
-                        <Disputa cargo="presidente" uf="br" l={nac2} />
-                      </div>
-                      <dl className="mt-3 space-y-1 text-sm">
-                        <div className="flex justify-between">
-                          <dt className="text-zinc-400">Seções</dt>
-                          <dd className="tabular-nums">
-                            {fmtInt(nac2.secoesTotalizadas)} de {fmtInt(nac2.secoes)}
-                          </dd>
-                        </div>
-                        <div className="flex justify-between">
-                          <dt className="text-zinc-400">Estados com votos</dt>
-                          <dd className="tabular-nums">{estadosApurados} de 27</dd>
-                        </div>
-                      </dl>
-                    </>
-                  )}
-                </>
-              ) : (
-                <p className="mt-2 text-sm text-zinc-400">Sem dados nacionais nesta atualização.</p>
-              )}
-              {apurado(nac1) && (
-                <div className={semVotos2 ? 'mt-3' : 'mt-3 border-t border-zinc-800 pt-3'}>
-                  <h3 className={semVotos2 ? 'mb-3 text-base font-semibold text-zinc-100' : 'mb-2 text-xs uppercase tracking-widest text-zinc-400'}>Como terminou o 1º turno</h3>
-                  {semVotos2 ? (
-                    <Duelo cargo="presidente" uf="br" a={nac1.votos[0]} b={nac1.votos[1]} l={nac1} cor={corDe} rotuloVantagem="Vantagem" />
-                  ) : (
-                    <ol className="space-y-2">
-                      {nac1.votos.slice(0, 2).map((v) => (
-                        <Linha key={v.id} cargo="presidente" uf="br" v={v} l={nac1} cor={corDe} />
-                      ))}
-                    </ol>
-                  )}
-                </div>
-              )}
-            </section>
-            </div>
             {!uf && (
               <div className="order-4">
                 <MudancaPorEstado mudanca={mudanca} finalistas={finalistasFixos} cor={cor} onUf={escolher} />
