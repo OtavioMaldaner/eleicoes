@@ -180,6 +180,10 @@ export function SegundoTurno() {
   const [foco, setFoco] = useState<string | null>(null);
   const emVariacao = foco === VARIACAO;
   const [instante, setInstante] = useState<number | null>(null); // momento do replay do mapa; null = ao vivo
+  const escolherModo = (modo: string | null) => {
+    setFoco(modo);
+    if (modo === MODO_ABSTENCAO) setInstante(null); // a abstenção não tem histórico
+  };
   const emVantagem = foco === VANTAGEM;
   const emAbstencao = foco === MODO_ABSTENCAO;
   const escolher = (k: string | null) => {
@@ -351,7 +355,27 @@ export function SegundoTurno() {
                   <BuscaCidade onEscolher={irParaCidade} />
                 </div>
                 <div className="mb-3 flex flex-wrap items-center gap-2">
-                  <Trilho className="flex flex-wrap" role="group" aria-label="Candidato do degradê">
+                  <select
+                    aria-label="Modo do mapa"
+                    value={foco ?? ''}
+                    onChange={(e) => escolherModo(e.target.value || null)}
+                    className="w-full rounded-full border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-100 sm:hidden"
+                  >
+                    <option value="">Quem lidera</option>
+                    {candidatos2.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.nome}
+                      </option>
+                    ))}
+                    <option value={VARIACAO}>Variação vs 1º turno</option>
+                    {!uf && (
+                      <>
+                        <option value={VANTAGEM}>Vantagem</option>
+                        <option value={MODO_ABSTENCAO}>Abstenção</option>
+                      </>
+                    )}
+                  </select>
+                  <Trilho className="hidden sm:flex sm:flex-wrap" role="group" aria-label="Candidato do degradê">
                     <button type="button" aria-pressed={foco === null} onClick={() => setFoco(null)} className={pilula(foco === null)}>
                       Quem lidera
                     </button>
@@ -370,10 +394,7 @@ export function SegundoTurno() {
                         <button type="button" aria-pressed={emVantagem} onClick={() => setFoco(VANTAGEM)} className={pilula(emVantagem)}>
                           Vantagem
                         </button>
-                        <button type="button" aria-pressed={emAbstencao} onClick={() => {
-                            setFoco(MODO_ABSTENCAO);
-                            setInstante(null);
-                          }} className={pilula(emAbstencao)}>
+                        <button type="button" aria-pressed={emAbstencao} onClick={() => escolherModo(MODO_ABSTENCAO)} className={pilula(emAbstencao)}>
                           Abstenção
                         </button>
                       </>
