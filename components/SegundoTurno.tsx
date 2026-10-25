@@ -13,12 +13,13 @@ import { projetar } from '@/lib/projecao';
 import { FAIXA_VARIACAO, pinturaVariacao } from '@/lib/variacao';
 import { ABSTENCAO, FAIXA_ABSTENCAO, pinturaAbstencao } from '@/lib/abstencao';
 import { contarLideres, raioVantagem, vantagens } from '@/lib/vantagem';
-import { fmtInt, fmtPct, fmtVotosCurto } from '@/lib/formato';
+import { fmtInt, fmtPct, fmtVotosCurto, horaCurta } from '@/lib/formato';
 import type { Local, VotoCand } from '@/lib/mapas/agregar';
 import { useBrasil } from '@/lib/useBrasil';
 import { useEstadoNaUrl } from '@/lib/useEstadoNaUrl';
 import { useEstadoSegundoTurno } from '@/lib/useEstado';
-import { adicionar, useHistorico } from '@/lib/useHistorico';
+import { adicionar, useHistorico, useHistoricos } from '@/lib/useHistorico';
+import { instantes as instantesDe, localEm } from '@/lib/replay';
 import { criarPonto } from '@/lib/historico';
 import { useMarcados } from '@/lib/useMarcados';
 import { Duelo, Linha } from './CartaoEstado';
@@ -34,6 +35,7 @@ import { MapaCoropletico } from './MapaCoropletico';
 import { PainelCamara } from './PainelCamara';
 import { CartaoProjecao } from './CartaoProjecao';
 import { FotoCandidato } from './FotoCandidato';
+import { LinhaDoTempo } from './LinhaDoTempo';
 import { MaioresVantagens } from './MaioresVantagens';
 import { MudancaPorEstado } from './MudancaPorEstado';
 import { PlacarDisputa } from './PlacarDisputa';
@@ -177,11 +179,13 @@ export function SegundoTurno() {
   // no degradê: candidato escolhido, ou quem lidera (null); ou a variação em relação ao 1º turno
   const [foco, setFoco] = useState<string | null>(null);
   const emVariacao = foco === VARIACAO;
+  const [instante, setInstante] = useState<number | null>(null); // momento do replay do mapa; null = ao vivo
   const emVantagem = foco === VANTAGEM;
   const emAbstencao = foco === MODO_ABSTENCAO;
   const escolher = (k: string | null) => {
     // O mapa de municípios não tem esses dois modos.
     if (k && (foco === VANTAGEM || foco === MODO_ABSTENCAO)) setFoco(null);
+    if (k) setInstante(null);
     setUfNaUrl(k);
     setMunSel(null);
     setMunSobre(null);
@@ -189,6 +193,7 @@ export function SegundoTurno() {
   // Abre o estado da cidade e já seleciona o município, para o resumo de votos aparecer sob o mapa.
   const irParaCidade = (c: { uf: string; ibge: string }) => {
     if (foco === VANTAGEM || foco === MODO_ABSTENCAO) setFoco(null);
+    setInstante(null);
     setUfNaUrl(c.uf);
     setMunSel(c.ibge);
   };
@@ -234,6 +239,19 @@ export function SegundoTurno() {
 
   const por2 = new Map((presidente2.dados?.estados ?? []).map((l) => [l.chave, l]));
   const por1 = new Map((presidente1.dados?.estados ?? []).map((l) => [l.chave, l]));
+  // Histórico gravado neste navegador, para voltar o mapa no tempo.
+  const historicosUf = useHistoricos([...por2.keys()].map((k) => `2t:uf:${k}`));
+  const momentos = instantesDe([...historicosUf.values()]);
+  // Os estados como estavam no momento escolhido; ao vivo, são os atuais.
+  const por2Vista =
+    instante === null
+      ? por2
+      : new Map(
+          [...por2].flatMap(([k, l]) => {
+            const antes = localEm(l, historicosUf.get(`2t:uf:${k}`) ?? [], instante);
+            return antes ? [[k, antes] as const] : [];
+          }),
+        );
   const governadores2 = [...(governadores.dados?.estados ?? [])].sort((a, b) => a.chave.localeCompare(b.chave));
   const nomeUf = (k: string) => por2.get(k)?.nome ?? por1.get(k)?.nome ?? k.toUpperCase();
 
@@ -246,18 +264,18 @@ export function SegundoTurno() {
     return `${nome}: sem votos apurados`;
   }
   const pintura = (k: string): Pintura =>
-    emAbstencao ? pinturaAbstencao(por2.get(k)) : emVantagem ? { fill: SEM_VOTOS, opacidade: 1 } : pinturaDe(por2.get(k), por1.get(k));
-  const listaVantagens = vantagens([...por2.values()]);
+    emAbstencao ? pinturaAbstencao(por2.get(k)) : emVantagem ? { fill: SEM_VOTOS, opacidade: 1 } : pinturaDe(por2Vista.get(k), por1.get(k));
+  const listaVantagens = vantagens([...por2Vista.values()]);
   const maiorVantagem = listaVantagens[0]?.votos ?? 0;
   const vantagemPorUf = new Map(listaVantagens.map((v) => [v.chave, v]));
   const selo = (k: string) => {
-    const l = por2.get(k);
+    const l = por2Vista.get(k);
     if (emAbstencao) return l?.pctAbstencao !== undefined ? `${Math.round(l.pctAbstencao)}%` : null;
     if (!apurado(l) || emVariacao || emVantagem) return null;
     const v = foco ? l.votos.find((x) => x.id === foco) : l.lider ? l.votos[0] : undefined;
     return v ? `${Math.round(pct(v, l))}%` : null;
   };
-  const lideresPorId = contarLideres([...por2.values()]);
+  const lideresPorId = contarLideres([...por2Vista.values()]);
   const marcas = emVantagem
     ? (k: string) => {
         const v = vantagemPorUf.get(k);
@@ -349,7 +367,10 @@ export function SegundoTurno() {
                         <button type="button" aria-pressed={emVantagem} onClick={() => setFoco(VANTAGEM)} className={pilula(emVantagem)}>
                           Vantagem
                         </button>
-                        <button type="button" aria-pressed={emAbstencao} onClick={() => setFoco(MODO_ABSTENCAO)} className={pilula(emAbstencao)}>
+                        <button type="button" aria-pressed={emAbstencao} onClick={() => {
+                            setFoco(MODO_ABSTENCAO);
+                            setInstante(null);
+                          }} className={pilula(emAbstencao)}>
                           Abstenção
                         </button>
                       </>
@@ -384,6 +405,14 @@ export function SegundoTurno() {
               {aguardando && (
                   <p role="status" className="mb-2 rounded-lg border border-amber-500/60 bg-amber-950/40 px-3 py-2 text-xs text-amber-100">
                     Apuração do 2º turno ainda não iniciada: o mapa mostra o líder de cada lugar no 1º turno e se atualiza sozinho a cada 30s.
+                  </p>
+                )}
+                {!uf && instante !== null && (
+                  <p role="status" className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-sky-500/60 bg-sky-950/40 px-3 py-2 text-xs text-sky-100">
+                    <span>Mapa de {horaCurta(instante)} · histórico gravado neste navegador. O resumo ao passar o mouse segue ao vivo.</span>
+                    <button type="button" onClick={() => setInstante(null)} className="rounded-full border border-sky-400/60 px-2.5 py-0.5 font-medium hover:bg-sky-900/60">
+                      Voltar ao vivo
+                    </button>
                   </p>
                 )}
                 {uf ? (
@@ -446,6 +475,14 @@ export function SegundoTurno() {
                   <div className="mx-auto w-full max-w-[min(900px,calc(100vh-15rem))]">
                     <MapaBrasil features={contornos} pintura={pintura} rotulo={rotulo} selecionado={uf} onSelecionar={escolher} dica={dicaEstado} marcas={marcas} selo={selo} />
                   </div>
+                )}
+                {!uf && (
+                  <LinhaDoTempo
+                    instantes={momentos}
+                    valor={instante}
+                    onMudar={setInstante}
+                    desativado={emAbstencao ? 'A abstenção não tem histórico: volte a outro modo do mapa para usar a linha do tempo.' : undefined}
+                  />
                 )}
                 <ul className="glass mt-3 flex flex-wrap gap-x-4 gap-y-1 rounded-xl border px-3 py-2 text-xs text-zinc-200">
                   {candidatos2.map((v) => (

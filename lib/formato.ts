@@ -14,3 +14,5 @@ export function fmtVotosCurto(n: number): string {
   const milhoes = Math.round(n / 100_000) / 10;
   return `${umaCasa.format(milhoes)} ${milhoes < 2 ? 'milhão' : 'milhões'}`;
 }
+
+export const horaCurta = (t: number) => new Date(t).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
