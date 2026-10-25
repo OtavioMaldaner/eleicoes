@@ -270,7 +270,10 @@ export function SegundoTurno() {
   const vantagemPorUf = new Map(listaVantagens.map((v) => [v.chave, v]));
   const selo = (k: string) => {
     const l = por2Vista.get(k);
-    if (emAbstencao) return l?.pctAbstencao !== undefined ? `${Math.round(l.pctAbstencao)}%` : null;
+    if (emAbstencao) {
+      const p = l?.pctAbstencao;
+      return l && l.total > 0 && p !== undefined && Number.isFinite(p) ? `${Math.round(p)}%` : null;
+    }
     if (!apurado(l) || emVariacao || emVantagem) return null;
     const v = foco ? l.votos.find((x) => x.id === foco) : l.lider ? l.votos[0] : undefined;
     return v ? `${Math.round(pct(v, l))}%` : null;
