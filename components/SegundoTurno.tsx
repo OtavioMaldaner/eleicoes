@@ -7,6 +7,7 @@ import type { EstadoSegundoTurno } from '@/lib/brasil/estado';
 import { corPartido } from '@/lib/cores';
 import { FAIXA_CANDIDATO, FAIXA_LIDER, FAIXA_LIDER_1T, EMPATE, SEM_VOTOS, pinturaDegrade } from '@/lib/degrade';
 import { eleitoDe, foiEleito } from '@/lib/eleito';
+import { placar } from '@/lib/placar';
 import { projetar } from '@/lib/projecao';
 import { FAIXA_VARIACAO, pinturaVariacao } from '@/lib/variacao';
 import { fmtInt, fmtPct } from '@/lib/formato';
@@ -17,7 +18,6 @@ import { useEstadoSegundoTurno } from '@/lib/useEstado';
 import { adicionar, useHistorico } from '@/lib/useHistorico';
 import { criarPonto } from '@/lib/historico';
 import { useMarcados } from '@/lib/useMarcados';
-import { BASE } from '@/lib/tse/config';
 import { Duelo, Linha } from './CartaoEstado';
 import { AnaliseRegioes } from './AnaliseRegioes';
 import { BuscaCidade } from './BuscaCidade';
@@ -30,6 +30,8 @@ import { MapaBrasil, type Pintura } from './MapaBrasil';
 import { MapaCoropletico } from './MapaCoropletico';
 import { PainelCamara } from './PainelCamara';
 import { CartaoProjecao } from './CartaoProjecao';
+import { FotoCandidato } from './FotoCandidato';
+import { PlacarDisputa } from './PlacarDisputa';
 
 const PRIMEIRO_TURNO_FINAL_MS = 10 * 60_000; // o 1º turno já acabou: basta rever de vez em quando
 
@@ -42,19 +44,6 @@ const apurado = (l: Local | null | undefined): l is Local => !!l && l.total > 0;
 const pct = (v: VotoCand, l: Local) => (l.total ? (v.votos / l.total) * 100 : 0);
 const cor = (v: VotoCand) => corPartido(v.partido);
 const corDe = (_cargo: unknown, v: VotoCand) => cor(v);
-
-function FotoEleito({ id, cor }: { id: string; cor: string }) {
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={`${BASE}/6257/fotos/br/${id}.jpeg`}
-      alt=""
-      className="h-11 w-11 shrink-0 rounded-full bg-zinc-800 object-cover object-top"
-      style={{ boxShadow: `0 0 0 2px #18181b, 0 0 0 4px ${cor}` }}
-      onError={(e) => (e.currentTarget.style.visibility = 'hidden')}
-    />
-  );
-}
 
 function Amostra({ cor }: { cor: string }) {
   return <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: cor }} />;
@@ -281,6 +270,9 @@ export function SegundoTurno() {
   const eleitoPresidente = eleitoDe(nac2);
   const semVotos2 = !nac2 || nac2.total === 0;
   const projecao = candidatos2.length === 2 ? projetar(presidente2.dados?.estados ?? [], presidente1.dados?.estados ?? [], candidatos2[0].id, candidatos2[1].id) : null;
+  // Ordem fixa por número, para a barra do placar não trocar de lado quando a liderança muda.
+  const finalistasFixos = [...candidatos2].sort((x, y) => Number(x.numero) - Number(y.numero));
+  const placarNac = placar(nac2, finalistasFixos);
   const estadosApurados = [...por2.values()].filter((l) => l.total > 0).length;
 
   return (
@@ -299,7 +291,7 @@ export function SegundoTurno() {
 
       {presidente2.dados && (
         <div className="space-y-4">
-
+          <PlacarDisputa placar={placarNac} eleito={eleitoPresidente ?? null} cor={cor} />
           <div className="grid items-start gap-4 xl:grid-cols-[320px_minmax(0,1fr)_380px]">
             <div className="order-1 xl:sticky xl:top-16 xl:order-2">
               <section className={cartao} aria-label="Mapa">
@@ -338,7 +330,7 @@ export function SegundoTurno() {
                 </div>
                 {eleitoPresidente && nac2 && (
                 <p role="status" className="mb-2 flex flex-wrap items-center gap-3 rounded-lg border border-emerald-500/60 bg-emerald-950/40 px-4 py-3 text-emerald-100">
-                  <FotoEleito id={eleitoPresidente.id} cor={cor(eleitoPresidente)} />
+                  <FotoCandidato id={eleitoPresidente.id} cor={cor(eleitoPresidente)} />
                   <span>
                     <span className="block text-xs uppercase tracking-widest text-emerald-300">Presidente eleito</span>
                     <span className="text-lg font-semibold">{eleitoPresidente.nome}</span>
