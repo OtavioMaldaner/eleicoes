@@ -7,6 +7,7 @@ import type { EstadoSegundoTurno } from '@/lib/brasil/estado';
 import { corPartido } from '@/lib/cores';
 import { FAIXA_CANDIDATO, FAIXA_LIDER, FAIXA_LIDER_1T, EMPATE, SEM_VOTOS, pinturaDegrade } from '@/lib/degrade';
 import { eleitoDe, foiEleito } from '@/lib/eleito';
+import { mudancaPorEstado } from '@/lib/mudanca';
 import { placar } from '@/lib/placar';
 import { projetar } from '@/lib/projecao';
 import { FAIXA_VARIACAO, pinturaVariacao } from '@/lib/variacao';
@@ -31,6 +32,7 @@ import { MapaCoropletico } from './MapaCoropletico';
 import { PainelCamara } from './PainelCamara';
 import { CartaoProjecao } from './CartaoProjecao';
 import { FotoCandidato } from './FotoCandidato';
+import { MudancaPorEstado } from './MudancaPorEstado';
 import { PlacarDisputa } from './PlacarDisputa';
 
 const PRIMEIRO_TURNO_FINAL_MS = 10 * 60_000; // o 1º turno já acabou: basta rever de vez em quando
@@ -273,6 +275,7 @@ export function SegundoTurno() {
   // Ordem fixa por número, para a barra do placar não trocar de lado quando a liderança muda.
   const finalistasFixos = [...candidatos2].sort((x, y) => Number(x.numero) - Number(y.numero));
   const placarNac = placar(nac2, finalistasFixos);
+  const mudanca = mudancaPorEstado(presidente2.dados?.estados ?? [], presidente1.dados?.estados ?? [], finalistasFixos);
   const estadosApurados = [...por2.values()].filter((l) => l.total > 0).length;
 
   return (
@@ -511,6 +514,11 @@ export function SegundoTurno() {
               )}
             </section>
             </div>
+            {!uf && (
+              <div className="order-4">
+                <MudancaPorEstado mudanca={mudanca} finalistas={finalistasFixos} cor={cor} onUf={escolher} />
+              </div>
+            )}
             {!uf && (
               <div className="order-4">
               <section className={cartao} aria-label="Governadores no 2º turno">
